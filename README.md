@@ -1,3 +1,4 @@
+![logo-reactstream2.svg](img/logo-reactstream2.svg)
 
 Przykład użycia:
 

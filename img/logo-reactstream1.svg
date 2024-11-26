@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+        <!-- Gradients -->
+        <linearGradient id="streamGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#0070f3;stop-opacity:1">
+                <animate attributeName="stop-color"
+                         values="#0070f3;#00a8ff;#0070f3"
+                         dur="3s"
+                         repeatCount="indefinite"/>
+            </stop>
+            <stop offset="100%" style="stop-color:#00a8ff;stop-opacity:1">
+                <animate attributeName="stop-color"
+                         values="#00a8ff;#0070f3;#00a8ff"
+                         dur="3s"
+                         repeatCount="indefinite"/>
+            </stop>
+        </linearGradient>
+
+        <!-- Filters -->
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+
+    <!-- Background circle -->
+    <circle cx="100" cy="80" r="70"
+            fill="#f6f8fa"
+            stroke="none">
+        <animate attributeName="r"
+                 values="70;72;70"
+                 dur="3s"
+                 repeatCount="indefinite"/>
+    </circle>
+
+    <!-- React-like orbits -->
+    <g transform="translate(100 80) scale(0.4)">
+        <g>
+            <ellipse cx="0" cy="0" rx="150" ry="60"
+                     fill="none"
+                     stroke="url(#streamGradient)"
+                     stroke-width="4"
+                     filter="url(#glow)">
+                <animateTransform attributeName="transform"
+                                  type="rotate"
+                                  from="0 0 0"
+                                  to="360 0 0"
+                                  dur="8s"
+                                  repeatCount="indefinite"/>
+            </ellipse>
+        </g>
+        <g>
+            <ellipse cx="0" cy="0" rx="150" ry="60"
+                     fill="none"
+                     stroke="url(#streamGradient)"
+                     stroke-width="4"
+                     transform="rotate(60)"
+                     filter="url(#glow)">
+                <animateTransform attributeName="transform"
+                                  type="rotate"
+                                  from="60 0 0"
+                                  to="420 0 0"
+                                  dur="8s"
+                                  repeatCount="indefinite"/>
+            </ellipse>
+        </g>
+        <g>
+            <ellipse cx="0" cy="0" rx="150" ry="60"
+                     fill="none"
+                     stroke="url(#streamGradient)"
+                     stroke-width="4"
+                     transform="rotate(120)"
+                     filter="url(#glow)">
+                <animateTransform attributeName="transform"
+                                  type="rotate"
+                                  from="120 0 0"
+                                  to="480 0 0"
+                                  dur="8s"
+                                  repeatCount="indefinite"/>
+            </ellipse>
+        </g>
+    </g>
+
+    <!-- Streaming particles -->
+    <g transform="translate(0 0) scale(0.4)">
+        <circle r="6" fill="#0070f3" filter="url(#glow)">
+            <animateMotion
+                    dur="2s"
+                    repeatCount="indefinite"
+                    path="M100,200 C150,150 250,250 300,200"/>
+        </circle>
+        <circle r="6" fill="#00a8ff" filter="url(#glow)">
+            <animateMotion
+                    dur="2s"
+                    repeatCount="indefinite"
+                    begin="0.5s"
+                    path="M100,200 C150,150 250,250 300,200"/>
+        </circle>
+        <circle r="6" fill="#0070f3" filter="url(#glow)">
+            <animateMotion
+                    dur="2s"
+                    repeatCount="indefinite"
+                    begin="1s"
+                    path="M100,200 C150,150 250,250 300,200"/>
+        </circle>
+    </g>
+
+    <!-- Central dot -->
+    <circle cx="100" cy="80" r="8"
+            fill="#0070f3"
+            filter="url(#glow)">
+        <animate attributeName="r"
+                 values="8;10;8"
+                 dur="2s"
+                 repeatCount="indefinite"/>
+        <animate attributeName="fill"
+                 values="#0070f3;#00a8ff;#0070f3"
+                 dur="3s"
+                 repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Text -->
+    <g transform="translate(300 69)">
+        <text
+                text-anchor="middle"
+                font-family="Arial, sans-serif"
+                font-size="74"
+                font-weight="bold"
+                fill="#0070f3"
+                filter="url(#glow)">
+            React
+            <animate attributeName="fill"
+                     values="#0070f3;#00a8ff;#0070f3"
+                     dur="3s"
+                     repeatCount="indefinite"/>
+        </text>
+
+        <text
+                y="68"
+                text-anchor="middle"
+                font-family="Arial, sans-serif"
+                font-size="61"
+                font-weight="bold"
+                fill="#00a8ff"
+                filter="url(#glow)">
+            Stream
+            <animate attributeName="fill"
+                     values="#00a8ff;#0070f3;#00a8ff"
+                     dur="3s"
+                     repeatCount="indefinite"/>
+        </text>
+    </g>
+</svg>
