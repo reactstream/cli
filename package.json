@@ -1,0 +1,38 @@
+{
+  "name": "reactstream",
+  "version": "1.0.0",
+  "description": "CLI tool for React component development and debugging",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "bin": {
+    "reactstream-analyze": "./src/analyze.js",
+    "reactstream-run": "./src/index.js"
+  },
+  "dependencies": {
+    "webpack": "^4.46.0",
+    "webpack-dev-server": "^3.11.3",
+    "babel-loader": "^8.2.5",
+    "@babel/core": "^7.12.10",
+    "@babel/preset-react": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "style-loader": "^2.0.0",
+    "css-loader": "^5.2.7",
+    "chalk": "^4.1.2",
+    "minimist": "^1.2.5",
+    "express": "^4.17.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "esprima": "^4.0.1",
+    "escodegen": "^2.0.0",
+    "estraverse": "^5.2.0",
+    "eslint": "^7.32.0",
+    "@babel/eslint-parser": "^7.12.1",
+    "eslint-plugin-react": "^7.24.0",
+    "eslint-plugin-react-hooks": "^4.2.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
