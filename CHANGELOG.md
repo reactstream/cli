@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2] - 2025-04-02
+
+### Added
+- Changes in .eslintrc.js
+- Changes in PUBLISH.md
+- Changes in bin/reactstream-analyze.js
+- Changes in commands/analyze.js
+- Changes in commands/serve.js
+- Changes in index.js
+
+### Changed
+- Changes in reactstream-analyze.sh
+- Changes in reactstream.sh
+
 ## [0.3.1] - 2025-04-02
 
 ### Added

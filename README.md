@@ -1,74 +1,189 @@
 ![logo-reactstream2.svg](img/logo-reactstream2.svg)
 
-Przykład użycia:
+# ReactStream
+
+ReactStream is a comprehensive CLI toolkit designed to streamline React component development and debugging. It provides two main features:
+
+1. **Component Analysis**: Analyze React components for common issues, best practices, and optimization opportunities.
+2. **Development Server**: Quickly test and debug React components in isolation without needing to set up a full project.
+
+## Installation
 
 ```bash
+# Install globally from npm
+npm install -g  @reactstream/cli
+```
+
+```bash
+# Or install in your project
+npm install --save-dev  @reactstream/cli
+```
+
+```bash
+# Or clone the repository
+git clone https://github.com/reactstream/cli
+cd reactstream
 npm install
-node src/index.js MyComponent.js
-
-node src/analyze.js MyComponent.js --fix
-
-chmod +x reactstream.sh
-chmod +x reactstream-analyze.sh
-
-
-# Analiza pojedynczego komponentu
-./reactstream-analyze MyComponent.js --debug
-
-# Analiza z automatyczną naprawą problemów
-./reactstream-analyze MyComponent.js --fix
-
-# Porównanie dwóch komponentów
-./reactstream-analyze MyComponent1.js MyComponent2.js --compare
-
-# Pełna analiza z debugowaniem i sugestiami optymalizacji
-./reactstream-analyze MyComponent.js --debug --verbose
+npm link # (to make commands available globally)
 ```
 
-![img.png](img.png)
+## Commands
 
-Główne funkcje narzędzia:
+ReactStream now provides a unified command interface with subcommands:
 
-1. Analiza składni i struktury:
-- Sprawdzanie poprawności składni JSX
-- Analiza importów i eksportów
-- Wykrywanie nieużywanych importów
-
-2. Analiza hooków:
-- Sprawdzanie zasad hooków
-- Wykrywanie potencjalnych problemów z zależnościami
-- Sugestie optymalizacji
-
-3. Analiza wydajności:
-- Wykrywanie niepotrzebnych rerenderów
-- Sprawdzanie optymalizacji memoizacji
-- Analiza użycia useCallback i useMemo
-
-4. Debugowanie:
-- Automatyczne dodawanie punktów debugowania
-- Śledzenie aktualizacji stanu
-- Monitorowanie efektów ubocznych
-
-5. Dostępność:
-- Sprawdzanie atrybutów ARIA
-- Weryfikacja alt dla obrazów
-- Kontrola kontrastów i semantyki
-
-6. Optymalizacje:
-- Sugestie użycia React.memo
-- Optymalizacja hooków
-- Refaktoryzacja stanu
-
-7. Porównywanie komponentów:
-- Analiza podobieństw
-- Wykrywanie duplikacji
-- Sugestie współdzielenia kodu
-
-Aby połączyć oba narzędzia, możesz użyć:
 ```bash
-# Najpierw analiza
-./reactstream-analyze MyComponent.js --debug
-
-# Następnie uruchomienie z debuggerem
-./reactstream MyComponent.js --port=3000 --debug
+reactstream <command> [options] [arguments]
 ```
+
+### analyze
+
+Analyze React components for issues and best practices.
+
+```bash
+reactstream analyze <component1.js> [component2.js...] [options]
+```
+
+**Options:**
+- `--fix`: Attempt to automatically fix issues
+- `--debug`: Show debug information
+- `--verbose`: Show more detailed output
+
+**Examples:**
+```bash
+reactstream analyze MyComponent.js
+reactstream analyze src/components/*.js --fix
+```
+
+### serve
+
+Start a development server for testing React components.
+
+```bash
+reactstream serve <component1.js> [component2.js...] [options]
+```
+
+**Options:**
+- `--port=<port>`: Specify the port to run the server on (default: 3000)
+
+**Examples:**
+```bash
+reactstream serve MyComponent.js
+reactstream serve src/components/Button.js src/components/Card.js --port=8080
+```
+
+## Features
+
+### Analysis Features
+- Syntax validation for React components
+- ESLint integration for code quality
+- Import analysis to detect unused imports
+- Hook usage analysis to ensure proper usage of React hooks
+- Performance analysis to detect potential bottlenecks
+- Accessibility checks for common issues
+- Automatic fixing of certain issues
+
+### Development Server Features
+- Hot module replacement for instant feedback
+- Isolation testing environment for components
+- Built-in UI component library for testing
+- Support for multiple components at once
+- Custom port configuration
+
+## Detailed Features
+
+### 1. Syntax and Structure Analysis
+- Checking JSX syntax validity
+- Analyzing imports and exports
+- Detecting unused imports
+
+### 2. Hook Analysis
+- Checking hook rules
+- Detecting potential dependency problems
+- Optimization suggestions
+
+### 3. Performance Analysis
+- Detecting unnecessary re-renders
+- Checking memoization optimizations
+- Analyzing useCallback and useMemo usage
+
+### 4. Debugging
+- Automatically adding debug points
+- Tracking state updates
+- Monitoring side effects
+
+### 5. Accessibility
+- Checking ARIA attributes
+- Verifying alt text for images
+- Checking contrast and semantics
+
+### 6. Optimizations
+- Suggestions for using React.memo
+- Hook optimization
+- State refactoring
+
+### 7. Component Comparison
+- Similarity analysis
+- Duplication detection
+- Code sharing suggestions
+
+## Project Structure
+
+```
+reactstream/
+├── index.js                  # Main CLI entry point
+├── package.json              # Project dependencies and metadata
+├── README.md                 # Project documentation
+├── commands/                 # CLI command implementations
+│   ├── analyze.js            # React component analysis command
+│   └── serve.js              # Development server command
+└── node_modules/             # Dependencies (generated by npm)
+```
+
+## Usage Examples
+
+### Quick Start
+
+```bash
+# Analyze a component
+reactstream analyze src/components/Button.jsx
+
+# Start a development server
+reactstream serve src/components/Button.jsx
+```
+
+### Multiple Components
+
+```bash
+reactstream serve src/components/Button.jsx src/components/Card.jsx
+```
+
+### Help Commands
+
+```bash
+reactstream help
+reactstream analyze --help
+reactstream serve --help
+```
+
+### Combined Workflow
+
+```bash
+# First analyze
+reactstream analyze MyComponent.js --debug
+
+# Then start development server
+reactstream serve MyComponent.js --port=3000 --debug
+```
+
+## Requirements
+
+- Node.js >= 14.0.0
+- npm or yarn
+
+## Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed information on how to contribute to this project.
+
+## License
+
+

@@ -1,42 +1,92 @@
 #!/bin/bash
-# Script to upgrade all development requirements to their latest versions
+# upgrade.sh - Script to upgrade all npm dependencies
 
-# Ensure we're in a virtual environment
-if [ -z "$VIRTUAL_ENV" ]; then
-    echo "Please activate your virtual environment first."
+# Colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}Starting dependency upgrade process...${NC}"
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Check requirements
+if ! command_exists npm; then
+    echo -e "${RED}Error: npm is not installed${NC}"
     exit 1
 fi
 
-# Create a temporary file for the updated requirements
-TMP_FILE=$(mktemp)
+# Check for package.json
+if [ ! -f "package.json" ]; then
+    echo -e "${RED}Error: package.json not found${NC}"
+    echo "Are you in the project root directory?"
+    exit 1
+fi
 
-# Get current requirements without version constraints
-grep -v "^#" requirements-dev.txt | sed 's/[<>=].*//' > "$TMP_FILE"
+# Create backup of package.json and package-lock.json
+echo -e "${BLUE}Creating backups of package files...${NC}"
+cp package.json package.json.bak
+if [ -f "package-lock.json" ]; then
+    cp package-lock.json package-lock.json.bak
+fi
 
-# Install the latest versions
-pip install --upgrade -r "$TMP_FILE"
+# Option to choose upgrade type
+echo -e "${BLUE}What type of upgrade would you like to perform?${NC}"
+echo "1) Update all dependencies to latest versions (may include breaking changes)"
+echo "2) Update only patch and minor versions (safer)"
+echo "3) Update only security vulnerabilities"
+read -p "Enter your choice (1-3): " UPGRADE_CHOICE
 
-# Generate the new requirements file
-pip freeze > requirements-dev.txt.new
+case $UPGRADE_CHOICE in
+    1)
+        echo -e "${YELLOW}Upgrading all dependencies to latest versions...${NC}"
+        echo -e "${YELLOW}Warning: This might include breaking changes${NC}"
+        npm outdated
+        echo -e "${BLUE}Updating packages...${NC}"
+        npm update --latest
+        ;;
+    2)
+        echo -e "${BLUE}Upgrading dependencies (patches and minor versions only)...${NC}"
+        npm outdated
+        echo -e "${BLUE}Updating packages...${NC}"
+        npm update
+        ;;
+    3)
+        echo -e "${BLUE}Fixing security vulnerabilities only...${NC}"
+        npm audit
+        echo -e "${BLUE}Fixing vulnerabilities...${NC}"
+        npm audit fix
+        ;;
+    *)
+        echo -e "${RED}Invalid choice${NC}"
+        exit 1
+        ;;
+esac
 
-# Keep only the packages that were in the original requirements-dev.txt
-while IFS= read -r package; do
-    # Skip empty lines and comments
-    if [[ -z "$package" || "$package" == \#* ]]; then
-        continue
+# Check for remaining vulnerabilities
+echo -e "${BLUE}Checking for remaining vulnerabilities...${NC}"
+npm audit
+
+# Offer to install development dependencies
+read -p "Would you like to update devDependencies as well? (y/n) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if [ $UPGRADE_CHOICE -eq 1 ]; then
+        npm update --latest --dev
+    else
+        npm update --dev
     fi
+fi
 
-    # Extract package name (remove version specifiers)
-    pkg_name=$(echo "$package" | sed 's/[<>=].*//')
+# Verify the upgrade results
+echo -e "${BLUE}Current package versions:${NC}"
+npm ls --depth=0
 
-    # Find the package in the new requirements file
-    grep -i "^$pkg_name==" requirements-dev.txt.new >> requirements-dev.txt.updated
-done < requirements-dev.txt
-
-# Replace the old file with the new one
-mv requirements-dev.txt.updated requirements-dev.txt
-
-# Clean up
-rm "$TMP_FILE" requirements-dev.txt.new
-
-echo "Development requirements have been upgraded to their latest versions."
+echo -e "${GREEN}Dependency upgrade complete!${NC}"
+echo -e "${YELLOW}Note: Backup files created: package.json.bak and package-lock.json.bak${NC}"
+echo -e "${YELLOW}If anything went wrong, you can restore these files.${NC}"

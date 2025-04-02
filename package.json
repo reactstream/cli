@@ -1,14 +1,28 @@
 {
-  "name": "reactstream",
-  "version": "1.0.0",
+  "name": "@reactstream/cli",
+  "version": "0.3.1",
   "description": "CLI tool for React component development and debugging",
-  "main": "src/index.js",
-  "scripts": {
-    "start": "node src/index.js"
-  },
+  "main": "index.js",
   "bin": {
-    "reactstream-analyze": "./src/analyze.js",
-    "reactstream-run": "./src/index.js"
+    "reactstream": "index.js",
+    "reactstream-analyze": "bin/reactstream-analyze.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Warning: No test specified, skipping tests\" && exit 0",
+    "lint": "eslint src/**/*.js commands/**/*.js || true",
+    "prepare": "npm run lint",
+    "version": "bash version.sh",
+    "publish": "bash publish.sh",
+    "upgrade": "bash upgrade.sh",
+    "analyze": "node index.js analyze",
+    "serve": "node index.js serve",
+    "clean": "bash start.sh clean",
+    "build": "echo \"No build step required\"",
+    "release:patch": "npm version patch",
+    "release:minor": "npm version minor",
+    "release:major": "npm version major",
+    "postversion": "git push && git push --tags"
   },
   "dependencies": {
     "@babel/core": "^7.12.10",
@@ -30,9 +44,29 @@
     "react-dom": "^17.0.2",
     "style-loader": "^2.0.0",
     "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.1"
   },
   "engines": {
     "node": ">=14.0.0"
-  }
+  },
+  "keywords": [
+    "react",
+    "cli",
+    "development",
+    "analysis",
+    "debugging",
+    "components",
+    "optimization"
+  ],
+  "author": "ReactStream Team",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reactstream/cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/reactstream/nodejs/issues"
+  },
+  "homepage": "https://github.com/reactstream/nodejs#readme"
 }

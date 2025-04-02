@@ -1,50 +1,34 @@
 #!/bin/bash
-# Usuń poprzednie pliki
-rm -rf *.egg-info
-#rm -rf dist
+# version.sh - Clean and prepare for version update
+
+# Colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}Cleaning previous build artifacts...${NC}"
+
+# Remove build artifacts
+rm -rf node_modules/.cache
+rm -rf dist
 rm -rf build
-# Usuń stare buildy
-#rm -rf dist/ build/ *.egg-info/
+rm -rf .reactstream
 
-# publish.sh
-#!/bin/bash
-echo "Starting publication process..."
-python -m venv venv
-source venv/bin/activate
-# Upewnij się że mamy najnowsze narzędzia
-pip install --upgrade pip build twine
+# Remove any npm debug logs
+rm -f npm-debug.log*
+rm -f yarn-debug.log*
+rm -f yarn-error.log*
 
-# Sprawdź czy jesteśmy w virtualenv
-if [ -z "$VIRTUAL_ENV" ]; then
-    echo "Aktywuj najpierw virtualenv!"
-    exit 1
-fi
+echo -e "${GREEN}Build artifacts cleaned successfully${NC}"
 
+# Current version from package.json
+CURRENT_VERSION=$(node -p "require('./package.json').version")
+echo -e "${BLUE}Current version: ${YELLOW}$CURRENT_VERSION${NC}"
 
-pip install -r requirements.txt
-
-
-# Zainstaluj w trybie edytowalnym
-pip install -e .
-python increment_init.py -f src/2print/__init__.py
-python increment_setup.py
-python increment_version.py
-python increment_project.py
-python changelog.py
-#python increment.py
-bash git.sh
-bash publish.sh
-
-# Zbuduj paczkę
-echo "Building package..."
-python -m build
-
-# Sprawdź paczkę
-echo "Checking package..."
-twine check dist/*
-
-# Opublikuj na PyPI
-echo "Publishing to PyPI..."
-twine upload dist/*
-
-echo "Publication complete!"
+echo -e "${BLUE}Ready for version update${NC}"
+echo -e "Run one of the following commands to update version:"
+echo -e "${GREEN}npm version patch${NC} - for bug fixes"
+echo -e "${GREEN}npm version minor${NC} - for new features"
+echo -e "${GREEN}npm version major${NC} - for breaking changes"

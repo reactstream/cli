@@ -1,9 +1,5 @@
 #!/bin/bash
-# reactstream-analyze
-# Usage: ./reactstream-analyze MyComponent.js [options]
+# reactstream-analyze.sh - CLI entry point for ReactStream analyzer
 
-# Get the directory where the script is located
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-# Run the node script with all arguments passed to this script
-node "$DIR/reactstream/src/analyze.js" "$@"
+# Forward all arguments to the analyze module
+node index.js analyze "$@"

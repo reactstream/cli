@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// src/reactstream.js
 
+// src/reactstream.js - Main implementation file
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
@@ -20,13 +20,29 @@ if (!command) {
   process.exit(1);
 }
 
+// Create commands directory if it doesn't exist
+const commandsDir = path.join(__dirname, '..', 'commands');
+if (!fs.existsSync(commandsDir)) {
+  fs.mkdirSync(commandsDir, { recursive: true });
+}
+
 // Route to the appropriate command
 switch (command) {
   case 'analyze':
-    require('./commands/analyze')(argv);
+    try {
+      require('../commands/analyze')(argv);
+    } catch (error) {
+      console.error(chalk.red(`Error loading analyze command: ${error.message}`));
+      process.exit(1);
+    }
     break;
   case 'serve':
-    require('./commands/serve')(argv);
+    try {
+      require('../commands/serve')(argv);
+    } catch (error) {
+      console.error(chalk.red(`Error loading serve command: ${error.message}`));
+      process.exit(1);
+    }
     break;
   case 'help':
     showHelp();
@@ -56,3 +72,5 @@ ${chalk.bold('EXAMPLES:')}
 Run ${chalk.cyan('reactstream <command> --help')} for more information on a specific command.
   `);
 }
+
+

@@ -1,19 +1,14 @@
 #!/usr/bin/env node
-// src/analyze.js
-
 
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
-const minimist = require('minimist');
-const {execSync} = require('child_process');
 const esprima = require('esprima');
 const escodegen = require('escodegen');
 const estraverse = require('estraverse');
 const eslint = require('eslint');
-const ReactDOM = require('react-dom/server');
 
-// Add this before the class definition
+// Define JSX visitor keys for estraverse
 const JSX_VISITOR_KEYS = {
     JSXElement: ['openingElement', 'children', 'closingElement'],
     JSXOpeningElement: ['name', 'attributes'],
@@ -29,18 +24,17 @@ const JSX_VISITOR_KEYS = {
 };
 
 class ReactStreamAnalyzer {
-    constructor() {
-        this.argv = minimist(process.argv.slice(2));
-        this.components = this.argv._;
-        this.debugMode = this.argv.debug || false;
-        this.fix = this.argv.fix || false;
-        this.verbose = this.argv.verbose || false;
+    constructor(argv) {
+        this.components = argv._;
+        this.debugMode = argv.debug || false;
+        this.fix = argv.fix || false;
+        this.verbose = argv.verbose || false;
     }
 
     async analyze() {
         if (this.components.length === 0) {
             console.error(chalk.red('Error: Please specify components to analyze'));
-            console.log(chalk.yellow('Usage: reactstream-analyze Component.js [AnotherComponent.js...] [--debug] [--fix] [--verbose]'));
+            console.log(chalk.yellow('Usage: reactstream analyze Component.js [AnotherComponent.js...] [--debug] [--fix] [--verbose]'));
             process.exit(1);
         }
 
@@ -421,7 +415,7 @@ class ReactStreamAnalyzer {
         }
     }
 
-    displayResults(results, componentPath) {
+    displayResults(results) {
         console.log(chalk.blue('\n=== Analysis Results ===\n'));
 
         // Syntax check
@@ -574,123 +568,6 @@ class ReactStreamAnalyzer {
         }
     }
 
-    addDebugger(code) {
-        try {
-            const ast = esprima.parseModule(code, {jsx: true});
-            let modified = false;
-
-            estraverse.traverse(ast, {
-                enter: (node) => {
-                    if (node.type === 'CallExpression' &&
-                        node.callee.type === 'Identifier' &&
-                        node.callee.name.startsWith('use')) {
-                        // Add debugger before hook calls
-                        modified = true;
-                        return {
-                            type: 'BlockStatement',
-                            body: [
-                                {
-                                    type: 'DebuggerStatement'
-                                },
-                                {
-                                    type: 'ExpressionStatement',
-                                    expression: node
-                                }
-                            ]
-                        };
-                    }
-                },
-                // Add JSX visitor keys
-                keys: Object.assign({}, estraverse.VisitorKeys, JSX_VISITOR_KEYS)
-            });
-
-            if (modified) {
-                return escodegen.generate(ast, {
-                    format: {
-                        indent: {
-                            style: '  '
-                        }
-                    }
-                });
-            }
-
-            return code;
-        } catch (error) {
-            console.error(chalk.red("Error adding debugger:"), error);
-            return code;
-        }
-    }
-
-    compareComponents(component1Path, component2Path) {
-        try {
-            const code1 = fs.readFileSync(component1Path, 'utf-8');
-            const code2 = fs.readFileSync(component2Path, 'utf-8');
-
-            const analysis1 = this.analyzeComponent(component1Path);
-            const analysis2 = this.analyzeComponent(component2Path);
-
-            console.log(chalk.blue('\n=== Component Comparison ===\n'));
-
-            // Compare imports
-            console.log(chalk.yellow('Imports Comparison:'));
-            const imports1 = new Set(analysis1.imports.imports.map(i => i.source));
-            const imports2 = new Set(analysis2.imports.imports.map(i => i.source));
-
-            console.log('Shared imports:',
-                [...imports1].filter(i => imports2.has(i)));
-            console.log('Unique to component 1:',
-                [...imports1].filter(i => !imports2.has(i)));
-            console.log('Unique to component 2:',
-                [...imports2].filter(i => !imports1.has(i)));
-
-            // Compare hooks usage
-            console.log(chalk.yellow('\nHooks Usage:'));
-            const hooks1 = new Set(analysis1.hooks.hooks.map(h => h.name));
-            const hooks2 = new Set(analysis2.hooks.hooks.map(h => h.name));
-
-            console.log('Shared hooks:',
-                [...hooks1].filter(h => hooks2.has(h)));
-            console.log('Unique to component 1:',
-                [...hooks1].filter(h => !hooks2.has(h)));
-            console.log('Unique to component 2:',
-                [...hooks2].filter(h => !hooks1.has(h)));
-
-            // Compare performance metrics
-            console.log(chalk.yellow('\nPerformance Issues:'));
-            console.log('Component 1:', analysis1.performance.length);
-            console.log('Component 2:', analysis2.performance.length);
-
-            // Compare accessibility issues
-            console.log(chalk.yellow('\nAccessibility Issues:'));
-            console.log('Component 1:', analysis1.accessibility.length);
-            console.log('Component 2:', analysis2.accessibility.length);
-
-            return {
-                imports: {
-                    shared: [...imports1].filter(i => imports2.has(i)),
-                    unique1: [...imports1].filter(i => !imports2.has(i)),
-                    unique2: [...imports2].filter(i => !imports1.has(i))
-                },
-                hooks: {
-                    shared: [...hooks1].filter(h => hooks2.has(h)),
-                    unique1: [...hooks1].filter(h => !hooks2.has(h)),
-                    unique2: [...hooks2].filter(h => !hooks1.has(h))
-                },
-                performance: {
-                    component1: analysis1.performance.length,
-                    component2: analysis2.performance.length
-                },
-                accessibility: {
-                    component1: analysis1.accessibility.length,
-                    component2: analysis2.accessibility.length
-                }
-            };
-        } catch (error) {
-            console.error(chalk.red("Error comparing components:"), error);
-            return {};
-        }
-    }
-
     suggestOptimizations(results) {
         const suggestions = [];
 
@@ -725,14 +602,33 @@ class ReactStreamAnalyzer {
     }
 }
 
-// Export the analyzer
-module.exports = ReactStreamAnalyzer;
+// Export the command handler
+module.exports = function(argv) {
+    // Check for help flag
+    if (argv.help) {
+        console.log(`
+${chalk.bold('reactstream analyze')} - Analyze React components for issues and best practices
 
-// CLI execution
-if (require.main === module) {
-    const analyzer = new ReactStreamAnalyzer();
+${chalk.bold('USAGE:')}
+  reactstream analyze <component1.js> [component2.js...] [options]
+
+${chalk.bold('OPTIONS:')}
+  ${chalk.cyan('--fix')}         Attempt to automatically fix issues
+  ${chalk.cyan('--debug')}       Show debug information
+  ${chalk.cyan('--verbose')}     Show more detailed output
+  ${chalk.cyan('--help')}        Show this help message
+
+${chalk.bold('EXAMPLES:')}
+  reactstream analyze MyComponent.js
+  reactstream analyze src/components/*.js --fix
+  `);
+        return;
+    }
+
+    // Run the analyzer
+    const analyzer = new ReactStreamAnalyzer(argv);
     analyzer.analyze().catch(error => {
         console.error(chalk.red('Error during analysis:'), error);
         process.exit(1);
     });
-}
+};
