@@ -4,8 +4,8 @@
   "description": "CLI tool for React component development and debugging",
   "main": "index.js",
   "bin": {
-    "reactstream": "index.js",
-    "reactstream-analyze": "bin/reactstream-analyze.js"
+    "reactstream": "./bin/reactstream.js",
+    "reactstream-analyze": "./bin/reactstream-analyze.js"
   },
   "scripts": {
     "start": "node index.js",
@@ -14,7 +14,7 @@
     "prepare": "npm run lint",
     "increment": "bash version.sh",
     "publish-npm": "bash version.sh --no-publish && npm publish --access=public",
-    "analyze": "node index.js analyze",
+    "analyze": "node bin/reactstream-analyze.js",
     "serve": "node index.js serve",
     "clean": "bash start.sh clean",
     "build": "echo \"No build step required\"",
