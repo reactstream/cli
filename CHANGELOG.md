@@ -2,6 +2,8 @@
 
 ### Changes since v0.3.94
 
+## [0.3.96] - 2025-04-02
+
 * Release version 0.3.94
 
 
