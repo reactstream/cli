@@ -3,7 +3,14 @@
 Przykład użycia:
 
 ```bash
-node src/index.js MyComponent
+npm install
+node src/index.js MyComponent.js
+
+node src/analyze.js MyComponent.js --fix
+
+chmod +x reactstream.sh
+chmod +x reactstream-analyze.sh
+
 
 # Analiza pojedynczego komponentu
 ./reactstream-analyze MyComponent.js --debug
@@ -18,6 +25,7 @@ node src/index.js MyComponent
 ./reactstream-analyze MyComponent.js --debug --verbose
 ```
 
+![img.png](img.png)
 
 Główne funkcje narzędzia:
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// src/analyze.js
+
 
 const fs = require('fs');
 const path = require('path');
@@ -10,6 +12,21 @@ const escodegen = require('escodegen');
 const estraverse = require('estraverse');
 const eslint = require('eslint');
 const ReactDOM = require('react-dom/server');
+
+// Add this before the class definition
+const JSX_VISITOR_KEYS = {
+    JSXElement: ['openingElement', 'children', 'closingElement'],
+    JSXOpeningElement: ['name', 'attributes'],
+    JSXClosingElement: ['name'],
+    JSXAttribute: ['name', 'value'],
+    JSXIdentifier: [],
+    JSXExpressionContainer: ['expression'],
+    JSXFragment: ['openingFragment', 'children', 'closingFragment'],
+    JSXOpeningFragment: [],
+    JSXClosingFragment: [],
+    JSXText: [],
+    JSXSpreadAttribute: ['argument']
+};
 
 class ReactStreamAnalyzer {
     constructor() {
@@ -43,21 +60,25 @@ class ReactStreamAnalyzer {
             return;
         }
 
-        const code = fs.readFileSync(fullPath, 'utf-8');
-        const results = {
-            syntax: await this.checkSyntax(code),
-            lint: await this.lintCode(code, fullPath),
-            imports: this.analyzeImports(code),
-            hooks: this.analyzeHooks(code),
-            performance: this.analyzePerformance(code),
-            accessibility: this.checkAccessibility(code),
-            debugPoints: this.findDebugPoints(code)
-        };
+        try {
+            const code = fs.readFileSync(fullPath, 'utf-8');
+            const results = {
+                syntax: await this.checkSyntax(code),
+                lint: await this.lintCode(code, fullPath),
+                imports: this.analyzeImports(code),
+                hooks: this.analyzeHooks(code),
+                performance: this.analyzePerformance(code),
+                accessibility: this.checkAccessibility(code),
+                debugPoints: this.findDebugPoints(code)
+            };
 
-        this.displayResults(results, componentPath);
+            this.displayResults(results, componentPath);
 
-        if (this.fix) {
-            await this.fixIssues(code, results, fullPath);
+            if (this.fix) {
+                await this.fixIssues(code, results, fullPath);
+            }
+        } catch (error) {
+            console.error(chalk.red(`Error analyzing ${componentPath}:`), error);
         }
     }
 
@@ -83,7 +104,8 @@ class ReactStreamAnalyzer {
                             });
                         }
                     }
-                }
+                },
+                keys: Object.assign({}, estraverse.VisitorKeys, JSX_VISITOR_KEYS)
             });
 
             return {
@@ -107,6 +129,10 @@ class ReactStreamAnalyzer {
                 sourceType: 'module',
                 ecmaFeatures: {
                     jsx: true
+                },
+                requireConfigFile: false, // Disable config file checking
+                babelOptions: {
+                    presets: ['@babel/preset-react']
                 }
             },
             env: {
@@ -127,13 +153,15 @@ class ReactStreamAnalyzer {
 
         const linter = new eslint.ESLint({
             baseConfig: eslintConfig,
-            fix: this.fix
+            fix: this.fix,
+            useEslintrc: false // Don't use .eslintrc file
         });
 
         try {
             const results = await linter.lintText(code, {filePath});
             return results[0];
         } catch (error) {
+            console.error(chalk.red("Linting error:"), error);
             return {
                 errorCount: 1,
                 messages: [{message: error.message, severity: 2}]
@@ -142,208 +170,255 @@ class ReactStreamAnalyzer {
     }
 
     analyzeImports(code) {
-        const ast = esprima.parseModule(code, {jsx: true});
-        const imports = [];
-        const unusedImports = new Set();
+        try {
+            const ast = esprima.parseModule(code, {jsx: true});
+            const imports = [];
+            const unusedImports = new Set();
 
-        estraverse.traverse(ast, {
-            enter: (node) => {
-                if (node.type === 'ImportDeclaration') {
-                    const importInfo = {
-                        source: node.source.value,
-                        specifiers: node.specifiers.map(spec => spec.local.name)
-                    };
-                    imports.push(importInfo);
-                    importInfo.specifiers.forEach(spec => unusedImports.add(spec));
-                }
-                if (node.type === 'Identifier') {
-                    unusedImports.delete(node.name);
-                }
-            }
-        });
+            estraverse.traverse(ast, {
+                enter: (node) => {
+                    if (node.type === 'ImportDeclaration') {
+                        const importInfo = {
+                            source: node.source.value,
+                            specifiers: node.specifiers.map(spec => spec.local.name)
+                        };
+                        imports.push(importInfo);
+                        importInfo.specifiers.forEach(spec => unusedImports.add(spec));
+                    }
+                    if (node.type === 'Identifier') {
+                        unusedImports.delete(node.name);
+                    }
+                },
+                // Add JSX visitor keys
+                keys: Object.assign({}, estraverse.VisitorKeys, JSX_VISITOR_KEYS)
+            });
 
-        return {
-            imports,
-            unusedImports: Array.from(unusedImports)
-        };
+            return {
+                imports,
+                unusedImports: Array.from(unusedImports)
+            };
+        } catch (error) {
+            console.error(chalk.red("Error in analyzeImports:"), error);
+            return {
+                imports: [],
+                unusedImports: []
+            };
+        }
     }
 
     analyzeHooks(code) {
-        const ast = esprima.parseModule(code, {jsx: true});
-        const hooks = [];
-        const hookIssues = [];
+        try {
+            const ast = esprima.parseModule(code, {jsx: true});
+            const hooks = [];
+            const hookIssues = [];
 
-        let inComponentScope = false;
+            let inComponentScope = false;
 
-        estraverse.traverse(ast, {
-            enter: (node) => {
-                if (node.type === 'FunctionDeclaration' || node.type === 'ArrowFunctionExpression') {
-                    inComponentScope = true;
-                }
-
-                if (node.type === 'CallExpression' &&
-                    node.callee.type === 'Identifier' &&
-                    node.callee.name.startsWith('use')) {
-                    hooks.push({
-                        name: node.callee.name,
-                        line: node.loc?.start.line,
-                        inComponentScope
-                    });
-
-                    if (!inComponentScope) {
-                        hookIssues.push({
-                            message: `Hook ${node.callee.name} called outside component scope`,
-                            line: node.loc?.start.line
-                        });
+            estraverse.traverse(ast, {
+                enter: (node) => {
+                    if (node.type === 'FunctionDeclaration' || node.type === 'ArrowFunctionExpression') {
+                        inComponentScope = true;
                     }
-                }
-            },
-            leave: (node) => {
-                if (node.type === 'FunctionDeclaration' || node.type === 'ArrowFunctionExpression') {
-                    inComponentScope = false;
-                }
-            }
-        });
 
-        return {hooks, hookIssues};
-    }
+                    if (node.type === 'CallExpression' &&
+                        node.callee.type === 'Identifier' &&
+                        node.callee.name.startsWith('use')) {
+                        hooks.push({
+                            name: node.callee.name,
+                            line: node.loc?.start.line,
+                            inComponentScope
+                        });
 
-    analyzePerformance(code) {
-        const ast = esprima.parseModule(code, {jsx: true});
-        const issues = [];
-
-        estraverse.traverse(ast, {
-            enter: (node) => {
-                // Check for inline object creation in JSX
-                if (node.type === 'JSXAttribute' &&
-                    node.value?.type === 'JSXExpressionContainer' &&
-                    node.value.expression.type === 'ObjectExpression') {
-                    issues.push({
-                        type: 'performance',
-                        message: 'Inline object creation in JSX props can cause unnecessary re-renders',
-                        line: node.loc?.start.line
-                    });
-                }
-
-                // Check for array methods without dependencies in useEffect
-                if (node.type === 'CallExpression' &&
-                    node.callee.name === 'useEffect' &&
-                    node.arguments[1]?.type === 'ArrayExpression' &&
-                    node.arguments[1].elements.length === 0) {
-                    const effectBody = node.arguments[0];
-                    if (effectBody.type === 'ArrowFunctionExpression' ||
-                        effectBody.type === 'FunctionExpression') {
-                        const hasArrayMethods = this.checkForArrayMethods(effectBody.body);
-                        if (hasArrayMethods) {
-                            issues.push({
-                                type: 'performance',
-                                message: 'Array methods in useEffect with empty deps array might cause performance issues',
+                        if (!inComponentScope) {
+                            hookIssues.push({
+                                message: `Hook ${node.callee.name} called outside component scope`,
                                 line: node.loc?.start.line
                             });
                         }
                     }
-                }
-            }
-        });
+                },
+                leave: (node) => {
+                    if (node.type === 'FunctionDeclaration' || node.type === 'ArrowFunctionExpression') {
+                        inComponentScope = false;
+                    }
+                },
+                // Add JSX visitor keys
+                keys: Object.assign({}, estraverse.VisitorKeys, JSX_VISITOR_KEYS)
+            });
 
-        return issues;
+            return {hooks, hookIssues};
+        } catch (error) {
+            console.error(chalk.red("Error in analyzeHooks:"), error);
+            return {
+                hooks: [],
+                hookIssues: []
+            };
+        }
+    }
+
+    analyzePerformance(code) {
+        try {
+            const ast = esprima.parseModule(code, {jsx: true});
+            const issues = [];
+
+            estraverse.traverse(ast, {
+                enter: (node) => {
+                    // Check for inline object creation in JSX
+                    if (node.type === 'JSXAttribute' &&
+                        node.value?.type === 'JSXExpressionContainer' &&
+                        node.value.expression.type === 'ObjectExpression') {
+                        issues.push({
+                            type: 'performance',
+                            message: 'Inline object creation in JSX props can cause unnecessary re-renders',
+                            line: node.loc?.start.line
+                        });
+                    }
+
+                    // Check for array methods without dependencies in useEffect
+                    if (node.type === 'CallExpression' &&
+                        node.callee.name === 'useEffect' &&
+                        node.arguments[1]?.type === 'ArrayExpression' &&
+                        node.arguments[1].elements.length === 0) {
+                        const effectBody = node.arguments[0];
+                        if (effectBody.type === 'ArrowFunctionExpression' ||
+                            effectBody.type === 'FunctionExpression') {
+                            const hasArrayMethods = this.checkForArrayMethods(effectBody.body);
+                            if (hasArrayMethods) {
+                                issues.push({
+                                    type: 'performance',
+                                    message: 'Array methods in useEffect with empty deps array might cause performance issues',
+                                    line: node.loc?.start.line
+                                });
+                            }
+                        }
+                    }
+                },
+                // Add JSX visitor keys
+                keys: Object.assign({}, estraverse.VisitorKeys, JSX_VISITOR_KEYS)
+            });
+
+            return issues;
+        } catch (error) {
+            console.error(chalk.red("Error in analyzePerformance:"), error);
+            return [];
+        }
     }
 
     checkForArrayMethods(node) {
         let hasArrayMethods = false;
-        estraverse.traverse(node, {
-            enter: (node) => {
-                if (node.type === 'CallExpression' &&
-                    node.callee.type === 'MemberExpression' &&
-                    ['map', 'filter', 'reduce', 'forEach'].includes(node.callee.property.name)) {
-                    hasArrayMethods = true;
-                }
-            }
-        });
+        try {
+            estraverse.traverse(node, {
+                enter: (node) => {
+                    if (node.type === 'CallExpression' &&
+                        node.callee.type === 'MemberExpression' &&
+                        ['map', 'filter', 'reduce', 'forEach'].includes(node.callee.property.name)) {
+                        hasArrayMethods = true;
+                    }
+                },
+                // Add JSX visitor keys
+                keys: Object.assign({}, estraverse.VisitorKeys, JSX_VISITOR_KEYS)
+            });
+        } catch (error) {
+            console.error(chalk.red("Error in checkForArrayMethods:"), error);
+        }
         return hasArrayMethods;
     }
 
     checkAccessibility(code) {
-        const ast = esprima.parseModule(code, {jsx: true});
-        const issues = [];
+        try {
+            const ast = esprima.parseModule(code, {jsx: true});
+            const issues = [];
 
-        estraverse.traverse(ast, {
-            enter: (node) => {
-                if (node.type === 'JSXOpeningElement') {
-                    // Check for img tags without alt
-                    if (node.name.name === 'img') {
-                        const hasAlt = node.attributes.some(attr =>
-                            attr.type === 'JSXAttribute' && attr.name.name === 'alt'
-                        );
-                        if (!hasAlt) {
-                            issues.push({
-                                type: 'accessibility',
-                                message: 'Image elements must have alt text',
-                                line: node.loc?.start.line
-                            });
+            estraverse.traverse(ast, {
+                enter: (node) => {
+                    if (node.type === 'JSXOpeningElement') {
+                        // Check for img tags without alt
+                        if (node.name.name === 'img') {
+                            const hasAlt = node.attributes.some(attr =>
+                                attr.type === 'JSXAttribute' && attr.name.name === 'alt'
+                            );
+                            if (!hasAlt) {
+                                issues.push({
+                                    type: 'accessibility',
+                                    message: 'Image elements must have alt text',
+                                    line: node.loc?.start.line
+                                });
+                            }
+                        }
+
+                        // Check for click handlers on non-button/link elements
+                        if (node.attributes.some(attr =>
+                            attr.type === 'JSXAttribute' &&
+                            attr.name.name === 'onClick'
+                        )) {
+                            if (!['button', 'a', 'input', 'select'].includes(node.name.name)) {
+                                issues.push({
+                                    type: 'accessibility',
+                                    message: `onClick handler on non-interactive element: ${node.name.name}`,
+                                    line: node.loc?.start.line
+                                });
+                            }
                         }
                     }
+                },
+                // Add JSX visitor keys
+                keys: Object.assign({}, estraverse.VisitorKeys, JSX_VISITOR_KEYS)
+            });
 
-                    // Check for click handlers on non-button/link elements
-                    if (node.attributes.some(attr =>
-                        attr.type === 'JSXAttribute' &&
-                        attr.name.name === 'onClick'
-                    )) {
-                        if (!['button', 'a', 'input', 'select'].includes(node.name.name)) {
-                            issues.push({
-                                type: 'accessibility',
-                                message: `onClick handler on non-interactive element: ${node.name.name}`,
-                                line: node.loc?.start.line
-                            });
-                        }
-                    }
-                }
-            }
-        });
-
-        return issues;
+            return issues;
+        } catch (error) {
+            console.error(chalk.red("Error in checkAccessibility:"), error);
+            return [];
+        }
     }
 
     findDebugPoints(code) {
-        const ast = esprima.parseModule(code, {jsx: true});
-        const debugPoints = [];
+        try {
+            const ast = esprima.parseModule(code, {jsx: true});
+            const debugPoints = [];
 
-        estraverse.traverse(ast, {
-            enter: (node) => {
-                // Find state updates
-                if (node.type === 'CallExpression' &&
-                    node.callee.type === 'Identifier' &&
-                    node.callee.name.startsWith('set')) {
-                    debugPoints.push({
-                        type: 'state-update',
-                        location: node.loc?.start.line,
-                        message: `State update with ${node.callee.name}`
-                    });
-                }
+            estraverse.traverse(ast, {
+                enter: (node) => {
+                    // Find state updates
+                    if (node.type === 'CallExpression' &&
+                        node.callee.type === 'Identifier' &&
+                        node.callee.name.startsWith('set')) {
+                        debugPoints.push({
+                            type: 'state-update',
+                            location: node.loc?.start.line,
+                            message: `State update with ${node.callee.name}`
+                        });
+                    }
 
-                // Find effect dependencies
-                if (node.type === 'CallExpression' &&
-                    node.callee.name === 'useEffect') {
-                    debugPoints.push({
-                        type: 'effect',
-                        location: node.loc?.start.line,
-                        dependencies: node.arguments[1]?.elements?.map(el => el.name) || []
-                    });
-                }
+                    // Find effect dependencies
+                    if (node.type === 'CallExpression' &&
+                        node.callee.name === 'useEffect') {
+                        debugPoints.push({
+                            type: 'effect',
+                            location: node.loc?.start.line,
+                            dependencies: node.arguments[1]?.elements?.map(el => el.name) || []
+                        });
+                    }
 
-                // Find potential memory leaks
-                if (node.type === 'CallExpression' &&
-                    node.callee.name === 'addEventListener') {
-                    debugPoints.push({
-                        type: 'event-listener',
-                        location: node.loc?.start.line,
-                        message: 'Check for event listener cleanup'
-                    });
-                }
-            }
-        });
+                    // Find potential memory leaks
+                    if (node.type === 'CallExpression' &&
+                        node.callee.name === 'addEventListener') {
+                        debugPoints.push({
+                            type: 'event-listener',
+                            location: node.loc?.start.line,
+                            message: 'Check for event listener cleanup'
+                        });
+                    }
+                },
+                // Add JSX visitor keys
+                keys: Object.assign({}, estraverse.VisitorKeys, JSX_VISITOR_KEYS)
+            });
 
-        return debugPoints;
+            return debugPoints;
+        } catch (error) {
+            console.error(chalk.red("Error in findDebugPoints:"), error);
+            return [];
+        }
     }
 
     displayResults(results, componentPath) {
@@ -355,7 +430,7 @@ class ReactStreamAnalyzer {
             console.log(`   Line ${results.syntax.line}: ${results.syntax.error}`);
         } else {
             console.log(chalk.green('✓ Syntax valid'));
-            if (results.syntax.issues.length > 0) {
+            if (results.syntax.issues && results.syntax.issues.length > 0) {
                 console.log(chalk.yellow('\nSyntax Warnings:'));
                 results.syntax.issues.forEach(issue => {
                     console.log(`   Line ${issue.line}: ${issue.message}`);
@@ -364,7 +439,7 @@ class ReactStreamAnalyzer {
         }
 
         // Linting results
-        if (results.lint.errorCount > 0 || results.lint.warningCount > 0) {
+        if (results.lint && (results.lint.errorCount > 0 || results.lint.warningCount > 0)) {
             console.log(chalk.yellow('\nLinting Issues:'));
             results.lint.messages.forEach(msg => {
                 const prefix = msg.severity === 2 ? chalk.red('Error') : chalk.yellow('Warning');
@@ -376,30 +451,34 @@ class ReactStreamAnalyzer {
 
         // Imports analysis
         console.log(chalk.blue('\nImports Analysis:'));
-        results.imports.imports.forEach(imp => {
-            console.log(`   • ${imp.source}: ${imp.specifiers.join(', ')}`);
-        });
-        if (results.imports.unusedImports.length > 0) {
-            console.log(chalk.yellow('\nUnused Imports:'));
-            results.imports.unusedImports.forEach(imp => {
-                console.log(`   • ${imp}`);
+        if (results.imports && results.imports.imports) {
+            results.imports.imports.forEach(imp => {
+                console.log(`   • ${imp.source}: ${imp.specifiers.join(', ')}`);
             });
+            if (results.imports.unusedImports && results.imports.unusedImports.length > 0) {
+                console.log(chalk.yellow('\nUnused Imports:'));
+                results.imports.unusedImports.forEach(imp => {
+                    console.log(`   • ${imp}`);
+                });
+            }
         }
 
         // Hooks analysis
         console.log(chalk.blue('\nHooks Usage:'));
-        results.hooks.hooks.forEach(hook => {
-            console.log(`   • ${hook.name} (line ${hook.line})`);
-        });
-        if (results.hooks.hookIssues.length > 0) {
-            console.log(chalk.yellow('\nHook Issues:'));
-            results.hooks.hookIssues.forEach(issue => {
-                console.log(`   Line ${issue.line}: ${issue.message}`);
+        if (results.hooks && results.hooks.hooks) {
+            results.hooks.hooks.forEach(hook => {
+                console.log(`   • ${hook.name} (line ${hook.line})`);
             });
+            if (results.hooks.hookIssues && results.hooks.hookIssues.length > 0) {
+                console.log(chalk.yellow('\nHook Issues:'));
+                results.hooks.hookIssues.forEach(issue => {
+                    console.log(`   Line ${issue.line}: ${issue.message}`);
+                });
+            }
         }
 
         // Performance issues
-        if (results.performance.length > 0) {
+        if (results.performance && results.performance.length > 0) {
             console.log(chalk.yellow('\nPerformance Considerations:'));
             results.performance.forEach(issue => {
                 console.log(`   Line ${issue.line}: ${issue.message}`);
@@ -407,7 +486,7 @@ class ReactStreamAnalyzer {
         }
 
         // Accessibility issues
-        if (results.accessibility.length > 0) {
+        if (results.accessibility && results.accessibility.length > 0) {
             console.log(chalk.yellow('\nAccessibility Issues:'));
             results.accessibility.forEach(issue => {
                 console.log(`   Line ${issue.line}: ${issue.message}`);
@@ -415,7 +494,7 @@ class ReactStreamAnalyzer {
         }
 
         // Debug points
-        if (this.debugMode) {
+        if (this.debugMode && results.debugPoints) {
             console.log(chalk.blue('\nDebug Points:'));
             results.debugPoints.forEach(point => {
                 console.log(`   • ${point.type} at line ${point.location}`);
@@ -432,50 +511,57 @@ class ReactStreamAnalyzer {
 
         let fixedCode = code;
 
-        // Fix syntax issues
-        if (results.syntax.issues.length > 0) {
-            const ast = esprima.parseModule(fixedCode, {jsx: true});
-            fixedCode = escodegen.generate(ast, {
-                format: {
-                    indent: {
-                        style: '  '
-                    }
+        // Skip syntax issues with escodegen since it doesn't support JSX well
+        if (results.syntax.issues && results.syntax.issues.length > 0) {
+            console.log(chalk.yellow("Note: Skipping automatic syntax fixes for JSX components. ESCodegen doesn't fully support JSX syntax."));
+            // Only apply manual fixes for common issues
+            results.syntax.issues.forEach(issue => {
+                if (issue.message.includes('Component names should start with uppercase')) {
+                    console.log(chalk.blue(`Consider manually fixing: ${issue.message}`));
                 }
             });
         }
 
         // Fix linting issues
-        if (results.lint.fixableErrorCount > 0 || results.lint.fixableWarningCount > 0) {
-            const linter = new eslint.ESLint({fix: true});
-            const results = await linter.lintText(fixedCode, {filePath});
-            if (results[0].output) {
-                fixedCode = results[0].output;
+        if (results.lint && (results.lint.fixableErrorCount > 0 || results.lint.fixableWarningCount > 0)) {
+            try {
+                const linter = new eslint.ESLint({fix: true});
+                const results = await linter.lintText(fixedCode, {filePath});
+                if (results[0].output) {
+                    fixedCode = results[0].output;
+                }
+            } catch (error) {
+                console.error(chalk.red("Error fixing linting issues:"), error);
             }
         }
 
         // Fix unused imports
-        if (results.imports.unusedImports.length > 0) {
-            const ast = esprima.parseModule(fixedCode, {jsx: true});
-            const unusedImports = new Set(results.imports.unusedImports);
+        if (results.imports && results.imports.unusedImports && results.imports.unusedImports.length > 0) {
+            try {
+                const ast = esprima.parseModule(fixedCode, {jsx: true});
+                const unusedImports = new Set(results.imports.unusedImports);
 
-            // Remove unused imports
-            ast.body = ast.body.filter(node => {
-                if (node.type === 'ImportDeclaration') {
-                    node.specifiers = node.specifiers.filter(spec =>
-                        !unusedImports.has(spec.local.name)
-                    );
-                    return node.specifiers.length > 0;
-                }
-                return true;
-            });
-
-            fixedCode = escodegen.generate(ast, {
-                format: {
-                    indent: {
-                        style: '  '
+                // Remove unused imports
+                ast.body = ast.body.filter(node => {
+                    if (node.type === 'ImportDeclaration') {
+                        node.specifiers = node.specifiers.filter(spec =>
+                            !unusedImports.has(spec.local.name)
+                        );
+                        return node.specifiers.length > 0;
                     }
-                }
-            });
+                    return true;
+                });
+
+                fixedCode = escodegen.generate(ast, {
+                    format: {
+                        indent: {
+                            style: '  '
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error(chalk.red("Error fixing unused imports:"), error);
+            }
         }
 
         // Save fixed code
@@ -489,115 +575,127 @@ class ReactStreamAnalyzer {
     }
 
     addDebugger(code) {
-        const ast = esprima.parseModule(code, {jsx: true});
-        let modified = false;
+        try {
+            const ast = esprima.parseModule(code, {jsx: true});
+            let modified = false;
 
-        estraverse.traverse(ast, {
-            enter: (node) => {
-                if (node.type === 'CallExpression' &&
-                    node.callee.type === 'Identifier' &&
-                    node.callee.name.startsWith('use')) {
-                    // Add debugger before hook calls
-                    modified = true;
-                    return {
-                        type: 'BlockStatement',
-                        body: [
-                            {
-                                type: 'DebuggerStatement'
-                            },
-                            {
-                                type: 'ExpressionStatement',
-                                expression: node
-                            }
-                        ]
-                    };
-                }
-            }
-        });
-
-        if (modified) {
-            return escodegen.generate(ast, {
-                format: {
-                    indent: {
-                        style: '  '
+            estraverse.traverse(ast, {
+                enter: (node) => {
+                    if (node.type === 'CallExpression' &&
+                        node.callee.type === 'Identifier' &&
+                        node.callee.name.startsWith('use')) {
+                        // Add debugger before hook calls
+                        modified = true;
+                        return {
+                            type: 'BlockStatement',
+                            body: [
+                                {
+                                    type: 'DebuggerStatement'
+                                },
+                                {
+                                    type: 'ExpressionStatement',
+                                    expression: node
+                                }
+                            ]
+                        };
                     }
-                }
+                },
+                // Add JSX visitor keys
+                keys: Object.assign({}, estraverse.VisitorKeys, JSX_VISITOR_KEYS)
             });
-        }
 
-        return code;
+            if (modified) {
+                return escodegen.generate(ast, {
+                    format: {
+                        indent: {
+                            style: '  '
+                        }
+                    }
+                });
+            }
+
+            return code;
+        } catch (error) {
+            console.error(chalk.red("Error adding debugger:"), error);
+            return code;
+        }
     }
 
     compareComponents(component1Path, component2Path) {
-        const code1 = fs.readFileSync(component1Path, 'utf-8');
-        const code2 = fs.readFileSync(component2Path, 'utf-8');
+        try {
+            const code1 = fs.readFileSync(component1Path, 'utf-8');
+            const code2 = fs.readFileSync(component2Path, 'utf-8');
 
-        const analysis1 = this.analyzeComponent(component1Path);
-        const analysis2 = this.analyzeComponent(component2Path);
+            const analysis1 = this.analyzeComponent(component1Path);
+            const analysis2 = this.analyzeComponent(component2Path);
 
-        console.log(chalk.blue('\n=== Component Comparison ===\n'));
+            console.log(chalk.blue('\n=== Component Comparison ===\n'));
 
-        // Compare imports
-        console.log(chalk.yellow('Imports Comparison:'));
-        const imports1 = new Set(analysis1.imports.imports.map(i => i.source));
-        const imports2 = new Set(analysis2.imports.imports.map(i => i.source));
+            // Compare imports
+            console.log(chalk.yellow('Imports Comparison:'));
+            const imports1 = new Set(analysis1.imports.imports.map(i => i.source));
+            const imports2 = new Set(analysis2.imports.imports.map(i => i.source));
 
-        console.log('Shared imports:',
-            [...imports1].filter(i => imports2.has(i)));
-        console.log('Unique to component 1:',
-            [...imports1].filter(i => !imports2.has(i)));
-        console.log('Unique to component 2:',
-            [...imports2].filter(i => !imports1.has(i)));
+            console.log('Shared imports:',
+                [...imports1].filter(i => imports2.has(i)));
+            console.log('Unique to component 1:',
+                [...imports1].filter(i => !imports2.has(i)));
+            console.log('Unique to component 2:',
+                [...imports2].filter(i => !imports1.has(i)));
 
-        // Compare hooks usage
-        console.log(chalk.yellow('\nHooks Usage:'));
-        const hooks1 = new Set(analysis1.hooks.hooks.map(h => h.name));
-        const hooks2 = new Set(analysis2.hooks.hooks.map(h => h.name));
+            // Compare hooks usage
+            console.log(chalk.yellow('\nHooks Usage:'));
+            const hooks1 = new Set(analysis1.hooks.hooks.map(h => h.name));
+            const hooks2 = new Set(analysis2.hooks.hooks.map(h => h.name));
 
-        console.log('Shared hooks:',
-            [...hooks1].filter(h => hooks2.has(h)));
-        console.log('Unique to component 1:',
-            [...hooks1].filter(h => !hooks2.has(h)));
-        console.log('Unique to component 2:',
-            [...hooks2].filter(h => !hooks1.has(h)));
+            console.log('Shared hooks:',
+                [...hooks1].filter(h => hooks2.has(h)));
+            console.log('Unique to component 1:',
+                [...hooks1].filter(h => !hooks2.has(h)));
+            console.log('Unique to component 2:',
+                [...hooks2].filter(h => !hooks1.has(h)));
 
-        // Compare performance metrics
-        console.log(chalk.yellow('\nPerformance Issues:'));
-        console.log('Component 1:', analysis1.performance.length);
-        console.log('Component 2:', analysis2.performance.length);
+            // Compare performance metrics
+            console.log(chalk.yellow('\nPerformance Issues:'));
+            console.log('Component 1:', analysis1.performance.length);
+            console.log('Component 2:', analysis2.performance.length);
 
-        // Compare accessibility issues
-        console.log(chalk.yellow('\nAccessibility Issues:'));
-        console.log('Component 1:', analysis1.accessibility.length);
-        console.log('Component 2:', analysis2.accessibility.length);
+            // Compare accessibility issues
+            console.log(chalk.yellow('\nAccessibility Issues:'));
+            console.log('Component 1:', analysis1.accessibility.length);
+            console.log('Component 2:', analysis2.accessibility.length);
 
-        return {
-            imports: {
-                shared: [...imports1].filter(i => imports2.has(i)),
-                unique1: [...imports1].filter(i => !imports2.has(i)),
-                unique2: [...imports2].filter(i => !imports1.has(i))
-            },
-            hooks: {
-                shared: [...hooks1].filter(h => hooks2.has(h)),
-                unique1: [...hooks1].filter(h => !hooks2.has(h)),
-                unique2: [...hooks2].filter(h => !hooks1.has(h))
-            },
-            performance: {
-                component1: analysis1.performance.length,
-                component2: analysis2.performance.length
-            },
-            accessibility: {
-                component1: analysis1.accessibility.length,
-                component2: analysis2.accessibility.length
-            }
-        };
+            return {
+                imports: {
+                    shared: [...imports1].filter(i => imports2.has(i)),
+                    unique1: [...imports1].filter(i => !imports2.has(i)),
+                    unique2: [...imports2].filter(i => !imports1.has(i))
+                },
+                hooks: {
+                    shared: [...hooks1].filter(h => hooks2.has(h)),
+                    unique1: [...hooks1].filter(h => !hooks2.has(h)),
+                    unique2: [...hooks2].filter(h => !hooks1.has(h))
+                },
+                performance: {
+                    component1: analysis1.performance.length,
+                    component2: analysis2.performance.length
+                },
+                accessibility: {
+                    component1: analysis1.accessibility.length,
+                    component2: analysis2.accessibility.length
+                }
+            };
+        } catch (error) {
+            console.error(chalk.red("Error comparing components:"), error);
+            return {};
+        }
     }
 
     suggestOptimizations(results) {
         const suggestions = [];
 
         // Check for potential memo usage
-        if (results.performance.some(p => p.message.includes('re-renders'))) {
+        if (results.performance && results.performance.some(p => p.message.includes('re-renders'))) {
             suggestions.push({
                 type: 'optimization',
                 message: 'Consider using React.memo to prevent unnecessary re-renders',
@@ -606,7 +704,7 @@ class ReactStreamAnalyzer {
         }
 
         // Check for callback optimization
-        if (results.hooks.hooks.some(h => h.name === 'useEffect')) {
+        if (results.hooks && results.hooks.hooks && results.hooks.hooks.some(h => h.name === 'useEffect')) {
             suggestions.push({
                 type: 'optimization',
                 message: 'Consider using useCallback for function props to optimize re-renders',
@@ -615,7 +713,7 @@ class ReactStreamAnalyzer {
         }
 
         // Check for state optimization
-        if (results.hooks.hooks.filter(h => h.name === 'useState').length > 3) {
+        if (results.hooks && results.hooks.hooks && results.hooks.hooks.filter(h => h.name === 'useState').length > 3) {
             suggestions.push({
                 type: 'optimization',
                 message: 'Consider using useReducer for complex state management',

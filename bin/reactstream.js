@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// bin/reactstream.js
+
 'use strict';
 
 const fs = require('fs');
