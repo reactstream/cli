@@ -60,3 +60,36 @@
     text-decoration-style: dashed;
     color: #60A5FA;
 }
+
+.syntax-keyword {
+    color: #c678dd;
+}
+
+.syntax-function {
+    color: #61afef;
+}
+
+.syntax-string {
+    color: #98c379;
+}
+
+.syntax-number {
+    color: #d19a66;
+}
+
+.syntax-boolean {
+    color: #d19a66;
+}
+
+.syntax-tag {
+    color: #e06c75;
+}
+
+.syntax-attr {
+    color: #d19a66;
+}
+
+.reactstream-code {
+    font-family: 'Courier New', monospace;
+    line-height: 1.5;
+}

@@ -86,26 +86,104 @@
     </div>
 </section>
 
-<section class="py-20 md:py-32">
+
+<section class="py-20 md:py-32 reactstream-code">
     <div class="container mx-auto px-4">
 
-        <img src="img/logo-reactstream1.svg" alt="ReactStream Logo" class="w-auto mr-4">
-        <p></p>
+        <h2 class="text-2xl font-bold mb-4">React Component Example</h2>
+        <p class="text-black-300 mb-6">
+            This example demonstrates a simple React functional component with hooks, state management,
+            and conditional rendering - the kind of component ReactStream helps you analyze and debug.
+        </p>
 
-        <div class="text-center mb-16">
-            <h2 class="text-3xl font-bold mb-4">Start in console</h2>
-            <img src="img/serve-console.png" alt="ReactStream Logo" class="w-auto mr-4">
+
+        <div class="code-window mt-4">
+            <div class="code-header">
+                <div class="flex">
+                    <div class="code-dot bg-red-500"></div>
+                    <div class="code-dot bg-yellow-500"></div>
+                    <div class="code-dot bg-green-500"></div>
+                </div>
+                <span class="text-gray-400 text-sm">MyComponent.js</span>
+            </div>
+            <div class="code-body reactstream-code">
+                <span class="syntax-keyword">import</span> React, { useState } <span class="syntax-keyword">from</span>
+                <span class="syntax-string">'react'</span>;<br><br>
+
+                <span class="syntax-keyword">const</span> <span class="syntax-function">MyComponent</span> = () => {<br>
+                &nbsp;&nbsp;<span class="syntax-keyword">const</span> [count, setCount] = useState(<span
+                    class="syntax-number">0</span>);<br>
+                &nbsp;&nbsp;<span class="syntax-keyword">const</span> [isVisible, setIsVisible] = useState(<span
+                    class="syntax-boolean">true</span>);<br><br>
+
+                &nbsp;&nbsp;<span class="syntax-keyword">const</span> <span
+                    class="syntax-function">handleIncrement</span> = () => {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;setCount(prevCount => prevCount + <span class="syntax-number">1</span>);<br>
+                &nbsp;&nbsp;};<br><br>
+
+                &nbsp;&nbsp;<span class="syntax-keyword">const</span> <span
+                    class="syntax-function">toggleVisibility</span> = () => {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;setIsVisible(prev => !prev);<br>
+                &nbsp;&nbsp;};<br><br>
+
+                &nbsp;&nbsp;<span class="syntax-keyword">return</span> (<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-tag">&lt;div</span> <span
+                    class="syntax-attr">className</span>=<span class="syntax-string">"my-component"</span><span
+                    class="syntax-tag">&gt;</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-tag">&lt;h2&gt;</span>My Example Component<span
+                    class="syntax-tag">&lt;/h2&gt;</span><br><br>
+
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{isVisible && (<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-tag">&lt;div</span> <span
+                    class="syntax-attr">className</span>=<span class="syntax-string">"counter-section"</span><span
+                    class="syntax-tag">&gt;</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-tag">&lt;p&gt;</span>Count:
+                {count}<span class="syntax-tag">&lt;/p&gt;</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-tag">&lt;button</span>
+                <span class="syntax-attr">onClick</span>={handleIncrement}<span class="syntax-tag">&gt;</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Increment<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                    class="syntax-tag">&lt;/button&gt;</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-tag">&lt;/div&gt;</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)}<br><br>
+
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-tag">&lt;button</span> <span
+                    class="syntax-attr">onClick</span>={toggleVisibility}<span class="syntax-tag">&gt;</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{isVisible ? <span class="syntax-string">'Hide'</span> :
+                <span class="syntax-string">'Show'</span>} Counter<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-tag">&lt;/button&gt;</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-tag">&lt;/div&gt;</span><br>
+                &nbsp;&nbsp;);<br>
+                };<br><br>
+
+                <span class="syntax-keyword">export</span> <span class="syntax-keyword">default</span> MyComponent;
+            </div>
         </div>
 
-        <p></p>
-        <div class="text-center mb-16">
-            <h2 class="text-3xl font-bold mb-4">and ... go to browser <a class="underline-dash" href="http://localhost:3000/">http://localhost:3000/</a></h2>
-            <img src="img/serve-browser.png" alt="ReactStream Logo" class="w-auto mr-4">
+        <div class="code-terminal mt-4">
+
+            <div class="text-center">
+                <h2 class="text-2xl font-bold mb-4">Start in console</h2>
+                <img src="img/serve-console.png" alt="ReactStream Logo" class="w-auto mr-4">
+            </div>
+        </div>
+
+        <div class="code-browser mt-4">
+            <p></p>
+            <div class="text-center">
+                <h2 class="text-2xl font-bold mb-4">and ... go to browser <a class="underline-dash"
+                                                                             href="http://localhost:3000/">http://localhost:3000/</a>
+                </h2>
+                <img src="img/serve-browser.png" alt="ReactStream Logo" class="w-auto mr-4">
+            </div>
+
         </div>
 
     </div>
 </section>
 
+<img src="img/logo-reactstream1.svg" alt="ReactStream Logo" class="w-auto mr-4">
+<p></p>
 <!-- Include other sections as separate components -->
 <div id="features-container"></div>
 <div id="how-it-works-container"></div>
