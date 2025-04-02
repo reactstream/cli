@@ -1,6 +1,6 @@
 {
   "name": "@reactstream/cli",
-  "version": "0.3.95",
+  "version": "0.3.96",
   "description": "CLI tool for React component development and debugging",
   "main": "index.js",
   "type": "commonjs",
@@ -32,6 +32,7 @@
     "babel-loader": "^10.0.0",
     "chalk": "^4.1.2",
     "css-loader": "^7.1.2",
+    "dotenv": "^16.4.7",
     "escodegen": "^2.1.0",
     "eslint": "^9.23.0",
     "eslint-plugin-react": "^7.37.4",
