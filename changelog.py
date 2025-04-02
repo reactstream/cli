@@ -6,9 +6,88 @@ from datetime import datetime
 from typing import List, Optional, Tuple, Dict
 
 
+def get_version_from_changelog(file_path="CHANGELOG.md"):
+    """Extract the most recent version from the changelog file."""
+    try:
+        with open(file_path, 'r') as file:
+            for line in file:
+                match = re.search(r'## \[(.*?)\]', line)
+                if match:
+                    return match.group(1)
+    except FileNotFoundError:
+        pass
+    return None
+
+
+def add_version(current_version: str, increment_type: str = "patch") -> str:
+    """
+    Increment the version number according to semantic versioning.
+
+    Args:
+        current_version: The current version string (e.g., "1.2.3")
+        increment_type: The part of the version to increment ("major", "minor", or "patch")
+
+    Returns:
+        The new version string
+    """
+    if not current_version:
+        return "0.1.0"  # Default starting version
+
+    # Parse version components
+    match = re.match(r'^(\d+)\.(\d+)\.(\d+)(-([a-zA-Z0-9.-]+))?(\+([a-zA-Z0-9.-]+))?$', current_version)
+    if not match:
+        raise ValueError(f"Invalid version format: {current_version}. Expected format: X.Y.Z[-prerelease][+build]")
+
+    major, minor, patch = int(match.group(1)), int(match.group(2)), int(match.group(3))
+    prerelease = match.group(5) if match.group(4) else None
+    build = match.group(7) if match.group(6) else None
+
+    # Increment appropriate component
+    if increment_type == "major":
+        major += 1
+        minor = 0
+        patch = 0
+        prerelease = None  # Clear prerelease on major version bump
+    elif increment_type == "minor":
+        minor += 1
+        patch = 0
+        prerelease = None  # Clear prerelease on minor version bump
+    elif increment_type == "patch":
+        patch += 1
+        prerelease = None  # Clear prerelease on patch version bump
+    elif increment_type.startswith("pre"):
+        # Handle prerelease versions
+        if prerelease:
+            # If it's already a prerelease, try to increment its number
+            pre_parts = prerelease.split('.')
+            if len(pre_parts) > 1 and pre_parts[-1].isdigit():
+                pre_parts[-1] = str(int(pre_parts[-1]) + 1)
+                prerelease = '.'.join(pre_parts)
+            else:
+                prerelease = f"{prerelease}.1"
+        else:
+            # Start a new prerelease version
+            prerelease_type = increment_type[3:] or "alpha"  # Extract alpha/beta/rc or default to alpha
+            prerelease = f"{prerelease_type}.1"
+    else:
+        raise ValueError(
+            f"Invalid increment type: {increment_type}. Expected 'major', 'minor', 'patch', or 'pre[type]'")
+
+    # Construct new version
+    new_version = f"{major}.{minor}.{patch}"
+    if prerelease:
+        new_version += f"-{prerelease}"
+    if build:
+        new_version += f"+{build}"
+
+    return new_version
+
+
 class ChangelogGenerator:
     def __init__(self):
-        self.version: str = self._get_latest_version()
+        version = get_version_from_changelog() or "0.1.0"
+        # print(version)
+        self.version: str = version
         self.changes: Dict[str, List[str]] = {
             "Added": [],
             "Changed": [],
@@ -18,46 +97,16 @@ class ChangelogGenerator:
             "Security": []
         }
 
-    def _get_latest_version(self) -> str:
-        """Extract the latest version from the changelog file."""
-        try:
-            if not os.path.exists("CHANGELOG.md"):
-                return "0.1.0"
-
-            with open("CHANGELOG.md", 'r', encoding='utf-8') as f:
-                content = f.read()
-
-            # Look for version numbers in the format [X.Y.Z]
-            version_pattern = r'\[(\d+\.\d+\.\d+)\]'
-            versions = re.findall(version_pattern, content)
-
-            if not versions:
-                return "0.1.0"
-
-            return versions[0]  # First match is the latest version
-        except Exception:
-            return "0.1.0"
-
-    def _increment_version(self, change_types: List[str]) -> str:
+    def increment_version(self, increment_type: str = "patch"):
         """
-        Increment version number based on change types.
-        - Major (1.0.0): Breaking changes (Removed)
-        - Minor (0.1.0): New features (Added)
-        - Patch (0.0.1): Fixes and minor changes
+        Increment the version number according to semantic versioning.
+
+        Args:
+            increment_type: The part of the version to increment
+                            ("major", "minor", "patch", or "pre[type]")
         """
-        major, minor, patch = map(int, self.version.split('.'))
-
-        if "Removed" in change_types:
-            major += 1
-            minor = 0
-            patch = 0
-        elif "Added" in change_types or "Deprecated" in change_types:
-            minor += 1
-            patch = 0
-        else:
-            patch += 1
-
-        return f"{major}.{minor}.{patch}"
+        self.version = add_version(self.version, increment_type)
+        return self.version
 
     def get_git_diff(self, file_path: str, staged: bool = False) -> str:
         """Get git diff for a file."""
@@ -137,10 +186,6 @@ class ChangelogGenerator:
                     change_type = self.analyze_file_changes(file, staged)
                     self.add_change(change_type, f"Changes in {file}")
 
-            # Calculate new version based on changes
-            change_types = [ct for ct, changes in self.changes.items() if changes]
-            self.version = self._increment_version(change_types)
-
             # Generate markdown
             today = datetime.now().strftime("%Y-%m-%d")
             changelog = f"## [{self.version}] - {today}\n\n"
@@ -158,8 +203,21 @@ class ChangelogGenerator:
             print(f"Error executing git command: {e}")
             return ""
 
-    def update_changelog_file(self, output_file: str = "CHANGELOG.md", staged: bool = False):
-        """Update the CHANGELOG.md file."""
+    def update_changelog_file(self, output_file: str = "CHANGELOG.md", staged: bool = False,
+                              increment_type: str = None):
+        """
+        Update the CHANGELOG.md file.
+
+        Args:
+            output_file: Path to the changelog file
+            staged: Whether to include staged changes only
+            increment_type: If provided, increment the version before updating
+                           ("major", "minor", "patch", or None to keep current version)
+        """
+        # Increment version if requested
+        if increment_type:
+            self.increment_version(increment_type)
+
         new_changes = self.generate_changelog(staged)
         if not new_changes:
             return
@@ -191,7 +249,15 @@ class ChangelogGenerator:
 
 def main():
     generator = ChangelogGenerator()
-    generator.update_changelog_file(staged=True)
+
+    # Check for command-line arguments to determine increment type
+    import sys
+    increment_type = "patch"  # Default increment
+    if len(sys.argv) > 1:
+        increment_type = sys.argv[1]  # Use provided increment type
+
+    generator.update_changelog_file(staged=True, increment_type=increment_type)
+    print(f"Updated changelog to version {generator.version}")
 
 
 if __name__ == "__main__":

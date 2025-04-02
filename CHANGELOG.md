@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2025-04-02
+
+### Added
+- Changes in .version
+- Changes in AUTHORS.txt
+- Changes in CLASSIFIERS.txt
+- Changes in SCRIPTS.txt
+- Changes in increment_init.py
+- Changes in increment_project.py
+- Changes in increment_setup.py
+- Changes in increment_version.py
+- Changes in upgrade.sh
+- Changes in version.sh
+
 ## [0.3.0] - 2024-11-26
 
 ### Added
