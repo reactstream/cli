@@ -1,6 +1,6 @@
 {
   "name": "@reactstream/cli",
-  "version": "0.3.96",
+  "version": "0.3.97",
   "description": "CLI tool for React component development and debugging",
   "main": "index.js",
   "type": "commonjs",
