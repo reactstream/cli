@@ -1,9 +1,23 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 const Preview = ({ isServing }) => {
     const iframeRef = useRef(null);
+    const [devServerPort, setDevServerPort] = useState(3000);
 
     useEffect(() => {
+        // Get the development server port from the environment
+        // This is passed to the client via a fetch request
+        fetch('/api/config')
+            .then(response => response.json())
+            .then(config => {
+                if (config.devServerPort) {
+                    setDevServerPort(config.devServerPort);
+                }
+            })
+            .catch(error => {
+                console.error('Failed to fetch config:', error);
+            });
+
         // When component is unmounted, clear the iframe
         return () => {
             if (iframeRef.current) {
@@ -21,7 +35,7 @@ const Preview = ({ isServing }) => {
             ) : (
                 <iframe
                     ref={iframeRef}
-                    src="http://localhost:3000"
+                    src={`http://localhost:${devServerPort}`}
                     title="Component Preview"
                     width="100%"
                     height="100%"
