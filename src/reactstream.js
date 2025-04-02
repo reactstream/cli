@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-
 // src/reactstream.js - Main implementation file
+
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
@@ -9,10 +9,12 @@ const minimist = require('minimist');
 // Parse command line arguments
 const argv = minimist(process.argv.slice(2));
 const command = argv._[0];
-const restArgs = argv._.slice(1);
+const restArgs = { ...argv };
 
-// Remove the command itself from argv._ for subcommands
-argv._ = restArgs;
+// Remove the command itself from argv._
+if (restArgs._ && restArgs._.length > 0) {
+  restArgs._ = restArgs._.slice(1);
+}
 
 // Show help if no command is provided
 if (!command) {
@@ -30,7 +32,7 @@ if (!fs.existsSync(commandsDir)) {
 switch (command) {
   case 'analyze':
     try {
-      require('../commands/analyze')(argv);
+      require('../commands/analyze')(restArgs);
     } catch (error) {
       console.error(chalk.red(`Error loading analyze command: ${error.message}`));
       process.exit(1);
@@ -38,7 +40,7 @@ switch (command) {
     break;
   case 'serve':
     try {
-      require('../commands/serve')(argv);
+      require('../commands/serve')(restArgs);
     } catch (error) {
       console.error(chalk.red(`Error loading serve command: ${error.message}`));
       process.exit(1);
@@ -72,5 +74,3 @@ ${chalk.bold('EXAMPLES:')}
 Run ${chalk.cyan('reactstream <command> --help')} for more information on a specific command.
   `);
 }
-
-

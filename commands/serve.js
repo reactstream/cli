@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// src/index.js
+// src/serve.js
 
 const fs = require('fs');
 const path = require('path');
@@ -7,48 +7,76 @@ const chalk = require('chalk');
 const minimist = require('minimist');
 const { execSync } = require('child_process');
 
-// Parse command line arguments
-const argv = minimist(process.argv.slice(2));
-const components = argv._;
-const port = argv.port || 3000;
-
-const args = process.argv.slice(2);
-
-if (args.length === 0) {
-    console.error('Error: Please specify at least one component to debug');
-    console.error('Usage: reactstream ComponentName [AnotherComponent...] [--port=3000]');
-    process.exit(1);
-}
-
-if (components.length === 0) {
-    console.error(chalk.red('Error: Please specify at least one component to debug'));
-    console.log(chalk.yellow('Usage: reactstream ComponentName [AnotherComponent...] [--port=3000]'));
-    process.exit(1);
-}
-
-// Create temporary directory for development
-const tempDir = path.join(process.cwd(), '.reactstream');
-if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
-}
-
-// Helper function to get component name from file path
-const getComponentInfo = (filePath) => {
-    const fullPath = path.resolve(process.cwd(), filePath);
-    const name = path.basename(filePath, path.extname(filePath));
+// Helper function to parse arguments properly
+const parseArguments = (rawArgs) => {
+    const argv = minimist(rawArgs);
     return {
-        name,
-        path: fullPath
+        components: argv._,
+        port: argv.port || 3000,
+        help: argv.help || false
     };
 };
 
-// Helper function to create UI components directory and files
-const createUIComponents = () => {
-    const componentsDir = path.join(tempDir, 'components', 'ui');
-    fs.mkdirSync(componentsDir, { recursive: true });
+// Export as a module function for use with the new command structure
+module.exports = function(argv) {
+    // Check if we're being run directly or via the module system
+    const isDirectRun = require.main === module;
+    const args = isDirectRun ? process.argv.slice(2) : (argv && Array.isArray(argv._) ? argv._ : []);
+    const options = isDirectRun ? parseArguments(args) : {
+        components: args,
+        port: argv?.port || 3000,
+        help: argv?.help || false
+    };
 
-    // Create card.jsx
-    const cardContent = `
+    // Show help if requested
+    if (options.help) {
+        console.log(`
+${chalk.bold('reactstream serve')} - Start a development server for testing React components
+
+${chalk.bold('USAGE:')}
+  reactstream serve <component1.js> [component2.js...] [options]
+
+${chalk.bold('OPTIONS:')}
+  ${chalk.cyan('--port=<port>')}  Specify the port to run the server on (default: 3000)
+  ${chalk.cyan('--help')}         Show this help message
+
+${chalk.bold('EXAMPLES:')}
+  reactstream serve MyComponent.js
+  reactstream serve src/components/Button.js src/components/Card.js --port=8080
+    `);
+        return;
+    }
+
+    // Validate we have components to serve
+    if (!options.components || options.components.length === 0) {
+        console.error(chalk.red('Error: Please specify at least one component to debug'));
+        console.log(chalk.yellow('Usage: reactstream serve ComponentName [AnotherComponent...] [--port=3000]'));
+        process.exit(1);
+    }
+
+    // Create temporary directory for development
+    const tempDir = path.join(process.cwd(), '.reactstream');
+    if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    // Helper function to get component name from file path
+    const getComponentInfo = (filePath) => {
+        const fullPath = path.resolve(process.cwd(), filePath);
+        const name = path.basename(filePath, path.extname(filePath));
+        return {
+            name,
+            path: fullPath.replace(/\\/g, '/') // Normalize path separators for JS imports
+        };
+    };
+
+    // Helper function to create UI components directory and files
+    const createUIComponents = () => {
+        const componentsDir = path.join(tempDir, 'components', 'ui');
+        fs.mkdirSync(componentsDir, { recursive: true });
+
+        // Create card.jsx
+        const cardContent = `
 import React from 'react';
 
 export const Card = ({ children, className = '' }) => (
@@ -68,8 +96,8 @@ export const CardContent = ({ children, className = '' }) => (
 );
 `;
 
-    // Create tabs.jsx
-    const tabsContent = `
+        // Create tabs.jsx
+        const tabsContent = `
 import React, { useState } from 'react';
 
 export const Tabs = ({ defaultValue, children }) => {
@@ -116,8 +144,8 @@ export const TabsContent = ({ value, children, activeTab }) => (
 );
 `;
 
-    // Create alert.jsx
-    const alertContent = `
+        // Create alert.jsx
+        const alertContent = `
 import React from 'react';
 
 export const Alert = ({ children, className = '' }) => (
@@ -133,12 +161,12 @@ export const AlertDescription = ({ children, className = '' }) => (
 );
 `;
 
-    fs.writeFileSync(path.join(componentsDir, 'card.jsx'), cardContent);
-    fs.writeFileSync(path.join(componentsDir, 'tabs.jsx'), tabsContent);
-    fs.writeFileSync(path.join(componentsDir, 'alert.jsx'), alertContent);
+        fs.writeFileSync(path.join(componentsDir, 'card.jsx'), cardContent);
+        fs.writeFileSync(path.join(componentsDir, 'tabs.jsx'), tabsContent);
+        fs.writeFileSync(path.join(componentsDir, 'alert.jsx'), alertContent);
 
-    // Create styles.css
-    const stylesContent = `
+        // Create styles.css
+        const stylesContent = `
 /* Base styles */
 :root {
   --primary: #0070f3;
@@ -229,51 +257,50 @@ export const AlertDescription = ({ children, className = '' }) => (
 }
 `;
 
-    fs.writeFileSync(path.join(tempDir, 'styles.css'), stylesContent);
-};
-
-// Generate package.json
-const generatePackageJson = () => {
-    const packageJson = {
-        "name": "reactstream-temp",
-        "version": "1.0.0",
-        "private": true,
-        "dependencies": {
-            "react": "^17.0.2",
-            "react-dom": "^17.0.2",
-            "@babel/runtime": "^7.12.5"
-        },
-        "devDependencies": {
-            "@babel/core": "^7.12.10",
-            "@babel/preset-env": "^7.12.11",
-            "@babel/preset-react": "^7.12.10",
-            "@babel/plugin-transform-runtime": "^7.12.10",
-            "babel-loader": "^8.2.5",
-            "webpack": "^4.46.0",
-            "webpack-dev-server": "^3.11.3",
-            "webpack-cli": "^3.3.12",
-            "style-loader": "^2.0.0",
-            "css-loader": "^5.2.7"
-        }
+        fs.writeFileSync(path.join(tempDir, 'styles.css'), stylesContent);
     };
 
-    fs.writeFileSync(
-        path.join(tempDir, 'package.json'),
-        JSON.stringify(packageJson, null, 2)
-    );
-};
+    // Generate package.json
+    const generatePackageJson = () => {
+        const packageJson = {
+            "name": "reactstream-temp",
+            "version": "1.0.0",
+            "private": true,
+            "dependencies": {
+                "react": "^17.0.2",
+                "react-dom": "^17.0.2",
+                "@babel/runtime": "^7.12.5"
+            },
+            "devDependencies": {
+                "@babel/core": "^7.12.10",
+                "@babel/preset-env": "^7.12.11",
+                "@babel/preset-react": "^7.12.10",
+                "@babel/plugin-transform-runtime": "^7.12.10",
+                "babel-loader": "^8.2.5",
+                "webpack": "^4.46.0",
+                "webpack-dev-server": "^3.11.3",
+                "webpack-cli": "^3.3.12",
+                "style-loader": "^2.0.0",
+                "css-loader": "^5.2.7"
+            }
+        };
 
+        fs.writeFileSync(
+            path.join(tempDir, 'package.json'),
+            JSON.stringify(packageJson, null, 2)
+        );
+    };
 
-// Generate webpack config
-const generateWebpackConfig = () => {
-    const webpackConfig = `
+    // Generate webpack config
+    const generateWebpackConfig = () => {
+        const webpackConfig = `
 const path = require('path');
 const webpack = require('webpack');
 
 module.exports = {
   mode: 'development',
   entry: [
-    'webpack-dev-server/client?http://0.0.0.0:${port}',
+    'webpack-dev-server/client?http://0.0.0.0:${options.port}',
     'webpack/hot/only-dev-server',
     path.join(__dirname, 'index.js')
   ],
@@ -337,12 +364,12 @@ module.exports = {
   devtool: 'cheap-module-source-map'
 };`;
 
-    fs.writeFileSync(path.join(tempDir, 'webpack.config.js'), webpackConfig);
-};
+        fs.writeFileSync(path.join(tempDir, 'webpack.config.js'), webpackConfig);
+    };
 
-// Generate HTML template
-const generateHtmlTemplate = () => {
-    const htmlContent = `
+    // Generate HTML template
+    const generateHtmlTemplate = () => {
+        const htmlContent = `
 <!DOCTYPE html>
 <html>
   <head>
@@ -356,18 +383,20 @@ const generateHtmlTemplate = () => {
   </body>
 </html>`;
 
-    fs.writeFileSync(path.join(tempDir, 'index.html'), htmlContent);
-};
+        fs.writeFileSync(path.join(tempDir, 'index.html'), htmlContent);
+    };
 
-// Generate entry point
-const generateEntryPoint = (componentInfos) => {
-    const entryContent = `
+    // Generate entry point
+    const generateEntryPoint = (componentInfos) => {
+        // The key fix is here - properly format the component paths and make them absolute
+        const entryContent = `
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './styles.css';
 ${componentInfos.map((comp, index) =>
-        `import Component${index} from '${comp.path}';`
-    ).join('\n')}
+            `// Component ${comp.name}
+import Component${index} from '${comp.path}';`
+        ).join('\n')}
 
 const App = () => {
   return (
@@ -376,12 +405,12 @@ const App = () => {
         ReactStream Debug Environment
       </h1>
       ${componentInfos.map((comp, index) => `
-        <div key="${comp.name}" style={{ marginTop: '20px' }}>
-          <h2 style={{ color: '#666', fontSize: '1.2rem', marginBottom: '10px' }}>
-            ${comp.name}
-          </h2>
-          <Component${index} />
-        </div>
+      <div key="${comp.name}" style={{ marginTop: '20px' }}>
+        <h2 style={{ color: '#666', fontSize: '1.2rem', marginBottom: '10px' }}>
+          ${comp.name}
+        </h2>
+        <Component${index} />
+      </div>
       `).join('')}
     </div>
   );
@@ -396,65 +425,80 @@ if (module.hot) {
 }
 `;
 
-    fs.writeFileSync(path.join(tempDir, 'index.js'), entryContent);
-};
+        fs.writeFileSync(path.join(tempDir, 'index.js'), entryContent);
+    };
 
+    // Install dependencies
+    const installDependencies = () => {
+        console.log(chalk.blue('📦 Installing dependencies...'));
+        try {
+            execSync('npm install', {
+                cwd: tempDir,
+                stdio: 'inherit'
+            });
+        } catch (error) {
+            console.error(chalk.red('Error installing dependencies:'), error.message);
+            process.exit(1);
+        }
+    };
 
-// Install dependencies
-const installDependencies = () => {
-    console.log(chalk.blue('📦 Installing dependencies...'));
-    execSync('npm install', {
-        cwd: tempDir,
-        stdio: 'inherit'
+    // Start development server
+    const startDevServer = () => {
+        console.log(chalk.blue('🚀 Starting development server...'));
+        try {
+            execSync(
+                `"${path.join(tempDir, 'node_modules/.bin/webpack-dev-server')}" --config webpack.config.js --port ${options.port} --hot --host 0.0.0.0 --disable-host-check --watch-poll --open`,
+                {
+                    cwd: tempDir,
+                    stdio: 'inherit',
+                    env: {
+                        ...process.env,
+                        BABEL_ENV: 'development',
+                        NODE_ENV: 'development'
+                    }
+                }
+            );
+        } catch (error) {
+            console.error(chalk.red('Error starting development server:'), error.message);
+            process.exit(1);
+        }
+    };
+
+    // Cleanup on exit
+    process.on('SIGINT', () => {
+        console.log(chalk.blue('\nCleaning up...'));
+        if (fs.existsSync(tempDir)) {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        }
+        process.exit();
+    });
+
+    // Main execution function
+    const runServer = async () => {
+        console.log(chalk.blue('🔧 Setting up ReactStream development environment...'));
+
+        const componentInfos = options.components.map(getComponentInfo);
+
+        // Create all necessary files and directories
+        createUIComponents();
+        generatePackageJson();
+        generateWebpackConfig();
+        generateHtmlTemplate();
+        generateEntryPoint(componentInfos);
+
+        // Install dependencies and start server
+        installDependencies();
+        startDevServer();
+    };
+
+    // Run the server
+    runServer().catch(error => {
+        console.error(chalk.red('Error:', error));
+        process.exit(1);
     });
 };
 
-// Start development server
-const startDevServer = () => {
-    console.log(chalk.blue('🚀 Starting development server...'));
-    execSync(
-        `"${path.join(tempDir, 'node_modules/.bin/webpack-dev-server')}" --config webpack.config.js --port ${port} --hot --host 0.0.0.0 --disable-host-check --watch-poll --open`,
-        {
-            cwd: tempDir,
-            stdio: 'inherit',
-            env: {
-                ...process.env,
-                BABEL_ENV: 'development',
-                NODE_ENV: 'development'
-            }
-        }
-    );
-};
-
-// Main execution
-const main = async () => {
-    console.log(chalk.blue('🔧 Setting up ReactStream development environment...'));
-
-    const componentInfos = components.map(getComponentInfo);
-
-    // Create all necessary files and directories
-    createUIComponents();
-    generatePackageJson();
-    generateWebpackConfig();
-    generateHtmlTemplate();
-    generateEntryPoint(componentInfos);
-
-    // Install dependencies and start server
-    installDependencies();
-    startDevServer();
-};
-
-// Cleanup on exit
-process.on('SIGINT', () => {
-    console.log(chalk.blue('\nCleaning up...'));
-    if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-    }
-    process.exit();
-});
-
-// Run the script
-main().catch(error => {
-    console.error(chalk.red('Error:', error));
-    process.exit(1);
-});
+// If running this file directly
+if (require.main === module) {
+    module.exports(parseArguments(process.argv.slice(2)));
+}

@@ -7,26 +7,92 @@ ReactStream is a comprehensive CLI toolkit designed to streamline React componen
 1. **Component Analysis**: Analyze React components for common issues, best practices, and optimization opportunities.
 2. **Development Server**: Quickly test and debug React components in isolation without needing to set up a full project.
 
-## Installation
+# ReactStream Installation Guide
+
+## Prerequisites
+
+- Node.js >= 14.0.0
+- npm or yarn
+
+## Option 1: Install from npm
+
+The easiest way to install ReactStream is via npm:
 
 ```bash
-# Install globally from npm
-npm install -g  @reactstream/cli
-```
+# Install globally
+npm install -g @reactstream/cli
 
-```bash
 # Or install in your project
-npm install --save-dev  @reactstream/cli
+npm install --save-dev @reactstream/cli
 ```
+
+## Option 2: Install from Source
+
+If you want to install from source code:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/reactstream/cli.git
+   cd cli
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Link the package to make the commands available globally:
+   ```bash
+   npm link
+   ```
+
+## Verifying Installation
+
+To verify that ReactStream was installed correctly:
 
 ```bash
-# Or clone the repository
-git clone https://github.com/reactstream/cli
-cd reactstream
-npm install
-npm link # (to make commands available globally)
+# Check the version
+reactstream --version
+
+# View help information
+reactstream help
 ```
 
+## Setting Up File Permissions
+
+If you're installing from source, you might need to make the scripts executable:
+
+```bash
+chmod +x bin/reactstream.js
+chmod +x bin/reactstream-analyze.js
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Command not found**
+
+   If you get a "command not found" error, make sure the npm bin directory is in your PATH:
+   ```bash
+   export PATH="$PATH:$(npm bin -g)"
+   ```
+
+2. **Permission issues**
+
+   If you encounter permission issues when installing globally, you can:
+   ```bash
+   # Option 1: Use sudo (not recommended)
+   sudo npm install -g @reactstream/cli
+   
+   # Option 2: Fix npm permissions (recommended)
+   # See: https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally
+   ```
+
+3. **ESLint errors**
+
+   If you see ESLint errors, make sure you have a valid `.eslintrc.js` file in your project root.
+4. 
 ## Commands
 
 ReactStream now provides a unified command interface with subcommands:

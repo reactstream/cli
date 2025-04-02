@@ -3,11 +3,14 @@ module.exports = {
         node: true,
         es6: true
     },
-    extends: 'eslint:recommended',
+    extends: ['eslint:recommended'],
     parserOptions: {
-        ecmaVersion: 2020
+        ecmaVersion: 2022,
+        sourceType: 'module'
     },
     rules: {
-        // Add any specific rules here
+        // Add your specific rules here
+        'no-unused-vars': 'warn',
+        'no-console': 'off'
     }
 };

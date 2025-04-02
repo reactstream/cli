@@ -1,18 +1,102 @@
-#!/usr/bin/env node
-// index.js - Main CLI entry point
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReactStream - React Component Development Toolkit</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-50 text-gray-800">
+<!-- Header -->
+<header class="bg-white shadow-sm">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="flex items-center">
+            <img src="/api/placeholder/48/48" alt="ReactStream Logo" class="h-12 w-auto mr-4">
+            <span class="text-2xl font-bold text-indigo-600">ReactStream</span>
+        </div>
+        <nav class="hidden md:flex space-x-10">
+            <a href="#features" class="text-gray-600 hover:text-indigo-600 transition">Features</a>
+            <a href="#documentation" class="text-gray-600 hover:text-indigo-600 transition">Documentation</a>
+            <a href="#examples" class="text-gray-600 hover:text-indigo-600 transition">Examples</a>
+            <a href="#download" class="text-gray-600 hover:text-indigo-600 transition">Download</a>
+        </nav>
+        <div>
+            <a href="https://github.com/reactstream/cli"
+               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                <i class="fab fa-github mr-2"></i> GitHub
+            </a>
+        </div>
+    </div>
+</header>
 
-// Support both direct execution and programmatic usage
-const runCli = (args) => {
-    const argv = args || process.argv.slice(2);
-    // Import the module properly
-    const reactstream = require('./src/reactstream');
-    reactstream(argv);
-};
+<!-- Hero Section -->
+<section class="hero-pattern py-20 md:py-32">
+    <div class="container mx-auto px-4">
+        <div class="flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 mb-10 md:mb-0">
+                <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">
+                    Streamline Your React Development
+                </h1>
+                <p class="text-xl text-gray-300 mb-8">
+                    ReactStream is a comprehensive CLI toolkit that analyzes your components and helps you debug
+                    effectively—all in one seamless workflow.
+                </p>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                    <a href="#download"
+                       class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:text-lg">
+                        Get Started
+                    </a>
+                    <a href="#documentation"
+                       class="inline-flex justify-center items-center px-6 py-3 border border-gray-700 text-base font-medium rounded-md text-gray-200 hover:bg-gray-800 md:text-lg">
+                        Documentation
+                    </a>
+                </div>
+            </div>
+            <div class="md:w-1/2">
+                <div class="code-window">
+                    <div class="code-header">
+                        <div class="flex">
+                            <div class="code-dot bg-red-500"></div>
+                            <div class="code-dot bg-yellow-500"></div>
+                            <div class="code-dot bg-green-500"></div>
+                        </div>
+                        <span class="text-gray-400 text-sm">terminal</span>
+                    </div>
+                    <div class="code-body">
+                        <span class="syntax-comment"># Install globally</span><br>
+                        $ npm install -g @reactstream/cli<br><br>
+                        <span class="syntax-comment"># Analyze your component</span><br>
+                        $ reactstream analyze MyComponent.js<br><br>
+                        <span class="text-green-400">✓ Syntax valid</span><br>
+                        <span class="text-green-400">✓ No linting issues</span><br><br>
+                        <span class="text-blue-400">Imports Analysis:</span><br>
+                        <span class="text-gray-300">   • react: React, useState, useEffect</span><br><br>
+                        <span class="text-blue-400">Hooks Usage:</span><br>
+                        <span class="text-gray-300">   • useState (line 5)</span><br>
+                        <span class="text-gray-300">   • useEffect (line 12)</span><br><br>
+                        <span class="syntax-comment"># Test your component</span><br>
+                        $ reactstream serve MyComponent.js --port=3000
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
-// If called directly as script
-if (require.main === module) {
-    runCli();
-}
+<!-- Include other sections as separate components -->
+<div id="features-container"></div>
+<div id="how-it-works-container"></div>
+<div id="documentation-container"></div>
+<div id="examples-container"></div>
+<div id="download-container"></div>
+<div id="testimonials-container"></div>
+<div id="faq-container"></div>
+<div id="footer-container"></div>
 
-// Export for programmatic usage
-module.exports = runCli;
+<!-- Include JavaScript -->
+<script src="js/main.js"></script>
+<script src="js/components.js"></script>
+</body>
+</html>

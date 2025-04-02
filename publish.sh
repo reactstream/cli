@@ -29,13 +29,6 @@ if ! command_exists git; then
     exit 1
 fi
 
-# Clean build artifacts
-echo -e "${BLUE}Cleaning previous build artifacts...${NC}"
-rm -rf node_modules/.cache
-rm -rf dist
-rm -rf build
-rm -rf .reactstream
-
 # Check if we're in a clean git state
 if [[ -n $(git status -s) ]]; then
     echo -e "${YELLOW}Warning: Git working directory is not clean${NC}"
@@ -52,18 +45,20 @@ fi
 CURRENT_VERSION=$(node -p "require('./package.json').version")
 echo -e "${BLUE}Current version: ${YELLOW}$CURRENT_VERSION${NC}"
 
-# Default to patch version update
-VERSION_TYPE="patch"
-
 # Check if version type is specified as argument
+VERSION_TYPE="patch"  # Default to patch
 if [ "$1" != "" ]; then
     case $1 in
         patch|minor|major)
             VERSION_TYPE="$1"
             ;;
+        --version=*)
+            SPECIFIC_VERSION="${1#*=}"
+            VERSION_ARGS="--version=$SPECIFIC_VERSION"
+            ;;
         *)
             echo -e "${RED}Invalid version type: $1${NC}"
-            echo "Valid options are: patch, minor, major"
+            echo "Valid options are: patch, minor, major, or --version=X.Y.Z"
             exit 1
             ;;
     esac
@@ -82,16 +77,19 @@ else
     case $VERSION_CHOICE in
         1|"")
             VERSION_TYPE="patch"
+            VERSION_ARGS="--patch"
             ;;
         2)
             VERSION_TYPE="minor"
+            VERSION_ARGS="--minor"
             ;;
         3)
             VERSION_TYPE="major"
+            VERSION_ARGS="--major"
             ;;
         4)
             read -p "Enter custom version (e.g., 1.2.3): " CUSTOM_VERSION
-            VERSION_TYPE="$CUSTOM_VERSION"
+            VERSION_ARGS="--version=$CUSTOM_VERSION"
             ;;
         *)
             echo -e "${RED}Invalid choice${NC}"
@@ -100,14 +98,9 @@ else
     esac
 fi
 
-# Update version in package.json
-if [[ $VERSION_CHOICE -eq 4 ]]; then
-    echo -e "${BLUE}Setting version to ${YELLOW}$VERSION_TYPE${NC}"
-    npm version $VERSION_TYPE --no-git-tag-version
-else
-    echo -e "${BLUE}Updating ${YELLOW}$VERSION_TYPE${NC} version"
-    npm version $VERSION_TYPE --no-git-tag-version
-fi
+# Run version.sh to increment version and update changelog
+echo -e "${BLUE}Running version script...${NC}"
+./version.sh $VERSION_ARGS
 
 # Get new version from package.json
 NEW_VERSION=$(node -p "require('./package.json').version")
@@ -125,9 +118,21 @@ npm run lint || {
     fi
 }
 
+# Run tests if available
+echo -e "${BLUE}Running tests...${NC}"
+npm test || {
+    echo -e "${YELLOW}Tests failed.${NC}"
+    read -p "Continue anyway? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${RED}Publication aborted${NC}"
+        exit 1
+    fi
+}
+
 # Commit changes
 echo -e "${BLUE}Committing version update...${NC}"
-git add package.json package-lock.json
+git add package.json package-lock.json CHANGELOG.md
 git commit -m "Version bump to $NEW_VERSION"
 
 # Create git tag

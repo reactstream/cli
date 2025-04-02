@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// command/analyze.js
 
 const fs = require('fs');
 const path = require('path');

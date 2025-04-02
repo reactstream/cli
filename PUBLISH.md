@@ -235,3 +235,78 @@ npm init
 
 Occasionally, npm registry might have issues. Check [npm status](https://status.npmjs.org/) to ensure the service is operational.
 
+
+
+
+I see the issue – your script is getting caught in an infinite loop because the `version` script in package.json is calling `version.sh`, which then triggers the npm version command, which in turn calls the `version` script again, creating an endless cycle.
+
+Let's fix the `version.sh` script to prevent this infinite loop:
+
+
+
+I've fixed the infinite loop issue in your versioning script. There are two main problems that were causing this:
+
+## 1. Script Infinite Loop Issue
+
+The infinite loop was occurring because:
+
+1. Your package.json had a `"version": "bash version.sh"` script
+2. When you ran `npm version` or the script itself called `npm version`, it triggered this script
+3. Which in turn ran `version.sh` again, creating an endless loop
+
+## 2. Solutions Implemented
+
+I've made two important changes to fix this:
+
+### A. Updated version.sh Script:
+
+1. **Added detection for npm lifecycle events**:
+   ```bash
+   # Detect if being run from npm script to prevent infinite loop
+   if [ "$npm_lifecycle_event" = "version" ]; then
+       echo "Running from npm version hook - skipping automatic versioning"
+       exit 0
+   fi
+   ```
+
+2. **Changed how the version is updated in package.json**:
+   - Instead of using `npm version` which triggers hooks, it directly modifies package.json with Node.js
+   - This avoids the npm lifecycle hooks that were causing the infinite loop
+
+3. **Added better error handling for git commands**:
+   - The script now continues even if git push fails
+   - It properly handles the case where package-lock.json is ignored by git
+
+### B. Updated package.json:
+
+1. **Removed the problematic `version` script**:
+   - This was the main cause of the infinite loop
+
+2. **Added better alternatives**:
+   ```json
+   "increment": "bash version.sh",
+   "publish-npm": "bash version.sh --no-publish && npm publish --access=public",
+   "release:patch": "bash version.sh --patch",
+   "release:minor": "bash version.sh --minor", 
+   "release:major": "bash version.sh --major",
+   "release": "bash version.sh"
+   ```
+
+## How to Use the Fixed Scripts
+
+Now you can use the scripts without fear of infinite loops:
+
+```bash
+# Increment version and publish (interactive)
+./version.sh
+
+# Increment patch version and publish
+npm run release:patch
+
+# Increment version without publishing
+npm run increment -- --no-publish
+
+# Custom version
+./version.sh --version=1.0.0
+```
+

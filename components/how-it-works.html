@@ -1,0 +1,48 @@
+<section id="how-it-works" class="py-20 bg-gray-50">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold mb-4">How ReactStream Works</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                A powerful toolkit that integrates seamlessly into your React development workflow.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Step 1 -->
+            <div class="bg-white rounded-lg p-8 shadow-md relative">
+                <div class="absolute -top-5 -left-5 h-12 w-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xl">1</div>
+                <h3 class="text-xl font-semibold mb-4 pt-2">Analyze Components</h3>
+                <p class="text-gray-600 mb-4">
+                    Run the analyze command to check your components for syntax issues, performance bottlenecks, and accessibility problems.
+                </p>
+                <div class="bg-gray-100 rounded p-3 text-sm font-mono">
+                    reactstream analyze MyComponent.js
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="bg-white rounded-lg p-8 shadow-md relative">
+                <div class="absolute -top-5 -left-5 h-12 w-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xl">2</div>
+                <h3 class="text-xl font-semibold mb-4 pt-2">Fix Issues</h3>
+                <p class="text-gray-600 mb-4">
+                    Use the fix option to automatically resolve common issues or follow the suggestions for more complex problems.
+                </p>
+                <div class="bg-gray-100 rounded p-3 text-sm font-mono">
+                    reactstream analyze MyComponent.js --fix
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="bg-white rounded-lg p-8 shadow-md relative">
+                <div class="absolute -top-5 -left-5 h-12 w-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xl">3</div>
+                <h3 class="text-xl font-semibold mb-4 pt-2">Test & Debug</h3>
+                <p class="text-gray-600 mb-4">
+                    Use the serve command to run components in isolation, with hot reloading and built-in UI components for testing.
+                </p>
+                <div class="bg-gray-100 rounded p-3 text-sm font-mono">
+                    reactstream serve MyComponent.js
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
