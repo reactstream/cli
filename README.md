@@ -92,7 +92,7 @@ chmod +x bin/reactstream-analyze.js
 3. **ESLint errors**
 
    If you see ESLint errors, make sure you have a valid `.eslintrc.js` file in your project root.
-4. 
+
 ## Commands
 
 ReactStream now provides a unified command interface with subcommands:
@@ -100,6 +100,7 @@ ReactStream now provides a unified command interface with subcommands:
 ```bash
 reactstream <command> [options] [arguments]
 ```
+
 
 ### analyze
 
@@ -132,8 +133,18 @@ reactstream serve <component1.js> [component2.js...] [options]
 - `--port=<port>`: Specify the port to run the server on (default: 3000)
 
 **Examples:**
+
+
+![img_2.png](img/img_2.png)
+
 ```bash
 reactstream serve MyComponent.js
+```
+
+![img_1.png](img/img_1.png)
+
+
+```bash
 reactstream serve src/components/Button.js src/components/Card.js --port=8080
 ```
 
