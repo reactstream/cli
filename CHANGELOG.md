@@ -1,3 +1,10 @@
+## [0.3.95] - 2025-04-02
+
+### Changes since v0.3.94
+
+* Release version 0.3.94
+
+
 ## [0.3.94] - 2025-04-02
 
 ### Changes since v0.3.93
