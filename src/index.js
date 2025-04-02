@@ -11,6 +11,14 @@ const argv = minimist(process.argv.slice(2));
 const components = argv._;
 const port = argv.port || 3000;
 
+const args = process.argv.slice(2);
+
+if (args.length === 0) {
+    console.error('Error: Please specify at least one component to debug');
+    console.error('Usage: reactstream ComponentName [AnotherComponent...] [--port=3000]');
+    process.exit(1);
+}
+
 if (components.length === 0) {
     console.error(chalk.red('Error: Please specify at least one component to debug'));
     console.log(chalk.yellow('Usage: reactstream ComponentName [AnotherComponent...] [--port=3000]'));

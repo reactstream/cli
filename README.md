@@ -3,6 +3,8 @@
 Przykład użycia:
 
 ```bash
+node src/index.js MyComponent
+
 # Analiza pojedynczego komponentu
 ./reactstream-analyze MyComponent.js --debug
 
