@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  reactstream-app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: reactstream-app
+    ports:
+      - "80:80"
+      - "3000:3000"
+    volumes:
+      - ./components:/app/components
+      - ./logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - VIRTUAL_HOST=www.reactstream.com
+    restart: unless-stopped
+    networks:
+      - reactstream-network
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+    networks:
+      - reactstream-network
+
+networks:
+  reactstream-network:
+    driver: bridge

@@ -141,6 +141,14 @@ reactstream serve <component1.js> [component2.js...] [options]
 reactstream serve MyComponent.js
 ```
 
+```bash
+npm run serve MyComponent.js
+```
+
+```bash
+node src/reactstream.js serve MyComponent.js
+```
+
 ![img_1.png](img/img_1.png)
 
 
