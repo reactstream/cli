@@ -2,6 +2,49 @@
 
 ### Changes since v0.3.96
 
+## [0.3.98] - 2025-04-03
+
+### Removed
+- Changes in components/documentation.html
+- Changes in components/features.html
+- Changes in components/how-it-works.html
+- Changes in web/.babelrc
+- Changes in web/.env.example
+- Changes in web/.gitignore
+- Changes in web/Dockerfile
+- Changes in web/README.md
+- Changes in web/STRUCTURE.md
+- Changes in web/UPGRADE.md
+- Changes in web/chart.py
+- Changes in web/dist/376.bundle.js
+- Changes in web/dist/603.bundle.js
+- Changes in web/dist/614.bundle.js
+- Changes in web/dist/628.bundle.js
+- Changes in web/dist/756.bundle.js
+- Changes in web/dist/819.bundle.js
+- Changes in web/dist/b797181c93b3755f4fa1.ttf
+- Changes in web/dist/bundle.js
+- Changes in web/dist/bundle.js.LICENSE.txt
+- Changes in web/dist/index.html
+- Changes in web/docker-compose.yaml
+- Changes in web/package.json
+- Changes in web/reactstream-wrapper.js
+- Changes in web/server.js
+- Changes in web/src/App.js
+- Changes in web/src/components/Analysis.js
+- Changes in web/src/components/Console.js
+- Changes in web/src/components/Editor.js
+- Changes in web/src/components/Preview.js
+- Changes in web/src/index.html
+- Changes in web/src/index.js
+- Changes in web/src/styles.css
+- Changes in web/webpack.config.js
+
+## [0.3.98] - 2025-04-03
+
+### Added
+- Changes in web/.gitignore
+
 
 
 ## [0.3.96] - 2025-04-02
